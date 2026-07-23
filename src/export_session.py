@@ -28,6 +28,17 @@ import numpy as np
 # ``roll:pitch`` target values are illustrative references for the demo head
 # schematic; the "optimal" technique is the study's hypothesis, not validated.
 _REFERENCE_APEX = {"apex_pitch": 4.0, "apex_roll": 68.0}
+
+# Prefab swimmers for the viewer dropdown: a spread of archetypes, each with its
+# own habitual head pitch and sensor mount, run through the real pipeline.
+# (label, archetype, seed, pitch_baseline_deg, mount_offset_deg, swimmer_id)
+_PREFAB = [
+    ("Lifter · S-01", "LIFTER", 100, 5.0, (4.0, -3.0, 11.0), "S-01"),
+    ("Rotator · S-02", "ROTATOR", 100, 3.0, (-6.0, 5.0, 14.0), "S-02"),
+    ("Mixed · S-03", "MIXED", 100, 6.0, (8.0, -4.0, 9.0), "S-03"),
+    ("Asymmetric · S-04", "ASYMMETRIC", 100, 4.0, (2.0, 7.0, 13.0), "S-04"),
+    ("Flat · S-05", "FLAT", 100, 2.0, (-3.0, -6.0, 16.0), "S-05"),
+]
 _GATE_THRESHOLD_DEG = 13.5  # lifter/rotator separation from the integration gate
 
 
@@ -40,7 +51,7 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
     t = cal["t"].to_numpy()
     pitch = cal["pitch_deg"].to_numpy()
     roll = cal["roll_deg"].to_numpy()
-    step = max(1, len(t) // 3500)  # keep the payload light for the browser
+    step = max(1, len(t) // 1500)  # keep the payload light (multi-swimmer bundle)
 
     breaths = []
     for r in pb.iter_rows(named=True):
@@ -91,7 +102,7 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
 
 
 def from_mock(archetype: str, seed: int, baseline: float,
-              mount: tuple[float, float, float]) -> dict:
+              mount: tuple[float, float, float], swimmer_id: str = "S-01") -> dict:
     """Synthesise a swimmer and run it through the pipeline (no hardware)."""
     from swimlab import calibrate, events, metrics, synth
 
@@ -105,6 +116,7 @@ def from_mock(archetype: str, seed: int, baseline: float,
         pitch_baseline_deg=baseline,
     )
     gt["mount_offset_deg"] = list(mount)
+    gt["swimmer_id"] = f"{swimmer_id} (synthetic {archetype.lower()})"
     cal = calibrate.apply(df, R)
     breaths = events.detect_breath_windows(cal)
     pushoffs = events.detect_pushoffs(cal)
@@ -115,6 +127,20 @@ def from_mock(archetype: str, seed: int, baseline: float,
     if int(summ["n_valid"][0]) < 20:
         flags.append("INSUFFICIENT_CYCLES")
     return _package(cal, gt, pb, summ, pushoffs, flags)
+
+
+def build_set() -> dict:
+    """Run the prefab swimmers through the pipeline into a multi-session bundle
+    (``{sessions: {label: payload}, default: label}``) for the viewer dropdown."""
+    sessions = {}
+    for label, arch, seed, baseline, mount, sid in _PREFAB:
+        sessions[label] = from_mock(arch, seed, baseline, mount, swimmer_id=sid)
+        s = sessions[label]["summary"]
+        print(f"  {label:20s} pattern={sessions[label]['detected_pattern']:8s} "
+              f"mean_d_pitch={s['mean_d_pitch_breath']:5.1f}°  "
+              f"valid={s['n_valid']}/{s['n_breaths']}  "
+              f"flags={sessions[label]['flags'] or 'none'}")
+    return {"sessions": sessions, "default": _PREFAB[0][0]}
 
 
 def from_session(path: Path) -> dict:
@@ -130,13 +156,22 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--mock", metavar="ARCHETYPE",
-                     help="synthesise a swimmer: LIFTER|ROTATOR|MIXED|FLAT|ASYMMETRIC")
+                     help="synthesise one swimmer: LIFTER|ROTATOR|MIXED|FLAT|ASYMMETRIC")
+    src.add_argument("--set", action="store_true",
+                     help="build the prefab multi-swimmer bundle for the dropdown")
     src.add_argument("--session", type=Path, help="a real session directory (blocked)")
     ap.add_argument("--seed", type=int, default=100)
     ap.add_argument("--baseline", type=float, default=5.0, help="prone head pitch, deg")
     ap.add_argument("--mount", type=float, nargs=3, default=(4.0, -3.0, 11.0))
     ap.add_argument("--out", type=Path, default=Path("data.json"))
     args = ap.parse_args()
+
+    if args.set:
+        print("building prefab swimmer set:")
+        payload = build_set()
+        args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"wrote {args.out} — {len(payload['sessions'])} swimmers")
+        return
 
     if args.mock:
         payload = from_mock(args.mock.upper(), args.seed, args.baseline, tuple(args.mount))

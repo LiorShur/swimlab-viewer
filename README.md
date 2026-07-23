@@ -20,25 +20,39 @@ sensor / mock ──▶ swimlab pipeline ──▶ export_session.py ──▶ d
 ```
 
 - **`src/export_session.py`** — runs a session end-to-end through swimlab and writes
-  the viewer payload. `--mock LIFTER` synthesises a swimmer (no hardware);
-  `--session DIR` will read a real Movella DOT export once `swimlab/io.py` is
-  unblocked.
-- **`src/build.py`** — inlines `data.json` into `src/template.html` to produce the
+  the viewer payload. `--mock LIFTER` synthesises one swimmer (no hardware); `--set`
+  builds the prefab multi-swimmer bundle for the dropdown; `--session DIR` will read
+  a real Movella DOT export once `swimlab/io.py` is unblocked.
+- **`src/build.py`** — inlines the payload into `src/template.html` to produce the
   single-file `dashboard.html`.
 - **`dashboard.html`** — the built page. Open it directly in any browser; no server,
   no external requests.
+
+## In the page
+
+- **Swimmer dropdown** — switch between the prefab archetypes (each a real pipeline
+  run), re-rendering the whole dashboard live.
+- **Import session…** — load a `data.json` you generated offline with
+  `export_session.py` (any archetype/seed). The generation is Python; the import and
+  render happen in-browser. This is how you view a "random" swimmer: make the file,
+  then import it. (Because the analysis pipeline is Python/numpy/scipy, it cannot run
+  inside the static page — the export step does the heavy lifting.)
 
 ## Regenerate
 
 ```bash
 pip install -e path/to/swimlab            # the analysis library
-python src/export_session.py --mock LIFTER --seed 100 --out data.json
-python src/build.py --data data.json --out dashboard.html
-open dashboard.html
+
+# the prefab dropdown bundle (what the committed dashboard ships):
+python src/export_session.py --set --out sessions.json
+python src/build.py --data sessions.json --out dashboard.html
+
+# or a single swimmer you can Import in the page:
+python src/export_session.py --mock ROTATOR --seed 7 --out data.json
 ```
 
-Try other patterns: `--mock ROTATOR` (clean technique), `--mock ASYMMETRIC`
-(left/right imbalance), `--mock FLAT`.
+Archetypes: `LIFTER`, `ROTATOR` (clean technique), `MIXED` (inconsistent),
+`ASYMMETRIC` (left/right imbalance), `FLAT` (barely rolls).
 
 ## Status & scope
 
