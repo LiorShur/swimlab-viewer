@@ -42,8 +42,16 @@ _PREFAB = [
 _GATE_THRESHOLD_DEG = 13.5  # lifter/rotator separation from the integration gate
 
 
-def _trim(x: float, d: int = 2) -> float:
-    return round(float(x), d)
+def _trim(x, d: int = 2):
+    """Round a number; pass ``None`` through unchanged.
+
+    Some summary metrics are legitimately undefined -- e.g. ``asymmetry_index``
+    when a swimmer breathes unilaterally (all breaths on one side), or
+    ``mean_roll_pitch_ratio`` for a swimmer whose roll never clears the
+    threshold. The viewer renders ``null`` as an em dash, so we carry it through
+    rather than crash.
+    """
+    return None if x is None else round(float(x), d)
 
 
 def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
@@ -67,7 +75,8 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
             }
         )
 
-    mean_dpitch = float(summ["mean_d_pitch_breath"][0])
+    _md = summ["mean_d_pitch_breath"][0]
+    mean_dpitch = 0.0 if _md is None else float(_md)  # 0 valid breaths -> treat as 0
     return {
         "swimmer_id": gt.get("swimmer_id", "S-01 (synthetic)"),
         "session": "T7 — 4×25 m front crawl, breathing every 3",
@@ -81,10 +90,10 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
         "gate_threshold_deg": _GATE_THRESHOLD_DEG,
         "summary": {
             "mean_d_pitch_breath": _trim(mean_dpitch),
-            "pitch_variability": _trim(float(summ["pitch_variability"][0])),
-            "asymmetry_index": _trim(float(summ["asymmetry_index"][0]), 3),
-            "mean_peak_roll_breath": _trim(float(summ["mean_peak_roll_breath"][0]), 1),
-            "mean_roll_pitch_ratio": _trim(float(summ["mean_roll_pitch_ratio"][0]), 3),
+            "pitch_variability": _trim(summ["pitch_variability"][0]),
+            "asymmetry_index": _trim(summ["asymmetry_index"][0], 3),
+            "mean_peak_roll_breath": _trim(summ["mean_peak_roll_breath"][0], 1),
+            "mean_roll_pitch_ratio": _trim(summ["mean_roll_pitch_ratio"][0], 3),
             "n_breaths": int(summ["n_breaths"][0]),
             "n_valid": int(summ["n_valid"][0]),
             "n_excluded": int(summ["n_excluded"][0]),
@@ -101,24 +110,43 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
         "reference": _REFERENCE_APEX,
         "observed_apex": {
             "apex_pitch": _trim(mean_dpitch, 1),
-            "apex_roll": _trim(float(summ["mean_peak_roll_breath"][0]), 1),
+            "apex_roll": _trim(summ["mean_peak_roll_breath"][0], 1),
         },
     }
 
 
 def from_mock(archetype: str, seed: int, baseline: float,
-              mount: tuple[float, float, float], swimmer_id: str = "S-01") -> dict:
-    """Synthesise a swimmer and run it through the pipeline (no hardware)."""
+              mount: tuple[float, float, float], swimmer_id: str = "S-01", *,
+              n_lengths: int = 4, stroke_period_s: float = 1.4,
+              breathe_every_n_strokes: int = 3, mount_slip_deg_per_min: float = 0.0,
+              noise: bool = True) -> dict:
+    """Synthesise a swimmer and run it through the pipeline (no hardware).
+
+    The keyword knobs pass straight through to ``synth.generate_trial`` -- vary
+    them to produce different swimmers/sessions:
+
+    * ``n_lengths`` -- session length (4 = the standard T7)
+    * ``stroke_period_s`` -- swim tempo, seconds/stroke (smaller = faster)
+    * ``breathe_every_n_strokes`` -- 3 = bilateral (alternating sides),
+      2 = unilateral (always the same side)
+    * ``mount_slip_deg_per_min`` -- sensor slipping during the swim (> 0)
+    * ``noise`` -- Movella DOT sensor noise/bias (False = clean round-trip)
+    """
     from swimlab import calibrate, events, metrics, synth
 
+    # Calibration shares the swimmer's mount/baseline and noise level so it
+    # round-trips (a clean trial needs a clean calibration).
     segs, _ = synth.generate_calibration(
-        mount_offset_deg=mount, pitch_baseline_deg=baseline, noise=True, seed=seed + 7
+        mount_offset_deg=mount, pitch_baseline_deg=baseline, noise=noise, seed=seed + 7
     )
     R = calibrate.fit_transform(segs["t0a"], segs["t0b"])
     pose_flag = calibrate.pose_check(segs["t0a"], segs["t0b"])
     df, gt = synth.generate_trial(
-        archetype, mount_offset_deg=mount, noise=True, seed=seed,
-        pitch_baseline_deg=baseline,
+        archetype, mount_offset_deg=mount, noise=noise, seed=seed,
+        pitch_baseline_deg=baseline, n_lengths=n_lengths,
+        stroke_period_s=stroke_period_s,
+        breathe_every_n_strokes=breathe_every_n_strokes,
+        mount_slip_deg_per_min=mount_slip_deg_per_min,
     )
     gt["mount_offset_deg"] = list(mount)
     gt["swimmer_id"] = f"{swimmer_id} (synthetic {archetype.lower()})"
@@ -165,9 +193,21 @@ def main() -> None:
     src.add_argument("--set", action="store_true",
                      help="build the prefab multi-swimmer bundle for the dropdown")
     src.add_argument("--session", type=Path, help="a real session directory (blocked)")
-    ap.add_argument("--seed", type=int, default=100)
-    ap.add_argument("--baseline", type=float, default=5.0, help="prone head pitch, deg")
-    ap.add_argument("--mount", type=float, nargs=3, default=(4.0, -3.0, 11.0))
+    ap.add_argument("--seed", type=int, default=100,
+                    help="a different individual of the archetype (re-rolls everything)")
+    ap.add_argument("--baseline", type=float, default=5.0,
+                    help="prone head pitch, deg (-5..12 realistic)")
+    ap.add_argument("--mount", type=float, nargs=3, default=(4.0, -3.0, 11.0),
+                    metavar=("X", "Y", "Z"), help="sensor mount offset, deg")
+    ap.add_argument("--n-lengths", type=int, default=4, help="session length (4 = T7)")
+    ap.add_argument("--stroke-period", type=float, default=1.4,
+                    help="swim tempo, seconds/stroke (smaller = faster)")
+    ap.add_argument("--breathe-every", type=int, default=3,
+                    help="breathe every N strokes: 3 = bilateral, 2 = unilateral")
+    ap.add_argument("--mount-slip", type=float, default=0.0,
+                    help="sensor slip during the swim, deg/min")
+    ap.add_argument("--clean", action="store_true",
+                    help="no sensor noise (a clean round-trip)")
     ap.add_argument("--out", type=Path, default=Path("data.json"))
     args = ap.parse_args()
 
@@ -179,7 +219,12 @@ def main() -> None:
         return
 
     if args.mock:
-        payload = from_mock(args.mock.upper(), args.seed, args.baseline, tuple(args.mount))
+        payload = from_mock(
+            args.mock.upper(), args.seed, args.baseline, tuple(args.mount),
+            n_lengths=args.n_lengths, stroke_period_s=args.stroke_period,
+            breathe_every_n_strokes=args.breathe_every,
+            mount_slip_deg_per_min=args.mount_slip, noise=not args.clean,
+        )
     else:
         payload = from_session(args.session)
 

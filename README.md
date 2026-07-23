@@ -58,6 +58,37 @@ python src/export_session.py --mock ROTATOR --seed 7 --out data.json
 Archetypes: `LIFTER`, `ROTATOR` (clean technique), `MIXED` (inconsistent),
 `ASYMMETRIC` (left/right imbalance), `FLAT` (barely rolls).
 
+### Varying a swimmer
+
+Every generator knob is a CLI flag on `export_session.py --mock`:
+
+| flag | varies | notes |
+|------|--------|-------|
+| `--mock` | technique archetype | the biggest lever |
+| `--seed N` | a different *individual* of that archetype | re-rolls bump amplitudes, jitter, timing — unlimited distinct swimmers |
+| `--baseline D` | habitual prone head pitch, ° | −5…12 realistic |
+| `--mount X Y Z` | sensor mount offset, ° | calibration removes it; large offsets stress the recovery |
+| `--n-lengths N` | session length | 4 = T7; <4 can trip `INSUFFICIENT_CYCLES` |
+| `--stroke-period S` | swim tempo, s/stroke | smaller = faster = more strokes/breaths |
+| `--breathe-every N` | breathing pattern | 3 = bilateral (alternating), 2 = unilateral (one side; `asymmetry_index` becomes undefined) |
+| `--mount-slip D` | sensor slip during the swim, °/min | models the sensor working loose |
+| `--clean` | turns sensor noise off | a clean round-trip |
+
+```bash
+# a fast bilateral rotator, long session
+python src/export_session.py --mock ROTATOR --seed 3 --stroke-period 1.1 --n-lengths 6 --out r3.json
+
+# a lifter whose sensor slips 5°/min, high habitual pitch
+python src/export_session.py --mock LIFTER --seed 9 --mount-slip 5 --baseline 10 --out l9.json
+
+# a batch of ten distinct lifters
+for s in $(seq 1 10); do python src/export_session.py --mock LIFTER --seed $s --out lifter_$s.json; done
+```
+
+For total control (any parameter, custom logic) call the library directly —
+`synth.generate_trial(...)` exposes the same knobs plus a few more
+(`gyro_bias_walk`, `yaw_corruption_scale`).
+
 ## Generate a full session (parquet) for `run_session`
 
 The viewer's `data.json` is pipeline *output*. To exercise the pipeline itself
