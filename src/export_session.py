@@ -72,6 +72,11 @@ def _package(cal, gt, pb, summ, pushoffs, flags) -> dict:
         "swimmer_id": gt.get("swimmer_id", "S-01 (synthetic)"),
         "session": "T7 — 4×25 m front crawl, breathing every 3",
         "mount_offset_deg": [_trim(v, 1) for v in gt.get("mount_offset_deg", [0, 0, 0])],
+        # The archetype the swimmer was *generated* from (ground truth). The
+        # pipeline never sees this -- it only measures d_pitch and classifies
+        # into the binary Lifter/Rotator gate below, which can differ (e.g. FLAT
+        # "lifts by default" and reads as Lifter).
+        "archetype": gt.get("archetype", ""),
         "detected_pattern": "Lifter" if mean_dpitch > _GATE_THRESHOLD_DEG else "Rotator",
         "gate_threshold_deg": _GATE_THRESHOLD_DEG,
         "summary": {

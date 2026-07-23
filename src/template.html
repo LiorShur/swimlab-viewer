@@ -414,31 +414,70 @@
              :`below the lifter gate, so the pattern reads <strong>rotator</strong> — the head turns to air rather than lifting to it. `)+
       `Rotation to the breathing side reaches ${fmt(s.mean_peak_roll_breath,0)}° peak roll. `+
       `Breath‑to‑breath consistency is ${s.pitch_variability<6?"fairly stable":"variable"} (SD ${fmt(s.pitch_variability,1)}°), with a `+
-      `${Math.abs(asym)<0.12?"negligible":"noticeable"} ${side}‑side asymmetry (index ${fmt(asym,2)}).`;
+      `${Math.abs(asym)<0.12?"negligible":"noticeable"} ${side}‑side asymmetry (index ${fmt(asym,2)}).`+
+      (p.archetype?` <span style="color:var(--faint)">Generated as a synthetic ${esc(p.archetype.toLowerCase())} swimmer; the pipeline sees only Δpitch and applies a binary lifter/rotator gate — so intermediate patterns (mixed, asymmetric, flat) fall to whichever side their pitch lands.</span>`:"");
   }
-  function corrections(p){
-    return p.detected_pattern==="Lifter" ? [
-      "Rotate to the air rather than lifting to it — keep the lower goggle in the water through the breath.",
-      "Lead the breath with body roll, not the chin; the head should turn with the torso, not independently.",
-      "Exhale steadily underwater so there is no air‑hunger driving a late, high head lift.",
-      "Keep the crown of the head pointing forward — the neck stays long and neutral, in line with the spine."
-    ] : [
-      "Technique is broadly rotational — maintain the low, neutral head position.",
-      "Watch for any drift toward lifting as fatigue accumulates late in sets."
-    ];
+  // Drill library, keyed so each swimmer's set is assembled from *their* metrics.
+  const DRILL={
+    singleArm:{n:"Single‑arm freestyle", w:"Removes the pull on the breathing side so the breath must come from body roll, not a head lift."},
+    switch:{n:"6‑kick / 3‑stroke switch", w:"Trains rotation to air on the side‑kick line — the motion a lifter substitutes with pitch."},
+    oneGoggle:{n:"“One goggle out” cue", w:"Breathe with only the top goggle clearing the surface. A concrete cap on the lift."},
+    exhale:{n:"Exhale‑pattern breathing", w:"Steady humming exhale underwater removes the air‑hunger that triggers a late, high chin lift."},
+    bilateral:{n:"Bilateral breathing (every 3)", w:"Forces the weaker side to match the stronger — evens out a left/right imbalance."},
+    tempo:{n:"Tempo‑trainer breathing", w:"A metronome grooves one repeatable breath pattern, cutting stroke‑to‑stroke variability."},
+    sideKick:{n:"Side‑kick balance (kick on your side)", w:"Builds the body roll a low‑roll swimmer lacks, so the breath can come from rotation."},
+    maintain:{n:"Steady‑state sets with a low‑head cue", w:"Reinforce the already‑neutral head position and keep it under fatigue."}
+  };
+
+  // Metric-driven corrections + drills. Everything below is illustrative and
+  // hypothesis-based (see the page banner); it varies with the swimmer's numbers.
+  function buildFindings(p){
+    const s=p.summary;
+    const lifter=p.detected_pattern==="Lifter";
+    const strongLift=s.mean_d_pitch_breath>=22;
+    const asymBad=Math.abs(s.asymmetry_index)>=0.15;
+    const asymSide=s.asymmetry_index>0?"left":"right";
+    const variable=s.pitch_variability>=6;
+    const lowRoll=s.mean_peak_roll_breath<35;
+    const corr=[], drills=[];
+
+    if(lifter){
+      corr.push(strongLift
+        ? `Pronounced head lift to breathe (${fmt(s.mean_d_pitch_breath,0)}°) — rotate to the air instead of lifting to it; keep the lower goggle in the water.`
+        : `Mild head lift on the breath (${fmt(s.mean_d_pitch_breath,0)}°) — nudge the breath toward body rotation and away from the chin.`);
+      corr.push("Lead the breath with body roll, not the chin — the head turns with the torso, not independently.");
+      corr.push("Exhale steadily underwater so there's no air‑hunger driving a late lift.");
+      drills.push(DRILL.singleArm, DRILL.switch, DRILL.oneGoggle);
+      if(strongLift) drills.push(DRILL.exhale);
+    } else {
+      corr.push(`Broadly rotational technique (${fmt(s.mean_d_pitch_breath,0)}° pitch, below the ${fmt(p.gate_threshold_deg,0)}° gate) — maintain the low, neutral head position.`);
+      corr.push("Watch for drift toward lifting as fatigue accumulates late in sets.");
+      drills.push(DRILL.maintain, DRILL.switch);
+    }
+    if(asymBad){
+      corr.push(`Noticeable ${asymSide}‑side asymmetry (index ${fmt(s.asymmetry_index,2)}) — the ${asymSide} breath differs most from the other side. Build symmetry with bilateral work.`);
+      drills.push(DRILL.bilateral);
+    }
+    if(variable){
+      corr.push(`Inconsistent breath‑to‑breath (SD ${fmt(s.pitch_variability,1)}°) — groove one repeatable pattern rather than several.`);
+      drills.push(DRILL.tempo);
+    }
+    if(lowRoll){
+      corr.push(`Low body roll (${fmt(s.mean_peak_roll_breath,0)}° peak) — there's little rotation to breathe into, which pushes the swimmer toward lifting.`);
+      drills.push(DRILL.sideKick);
+    }
+    // de-duplicate drills by name, keep order, cap at 5
+    const seen=new Set(), uniq=[];
+    for(const d of drills){ if(!seen.has(d.n)){ seen.add(d.n); uniq.push(d);} }
+    return {corrections:corr, drills:uniq.slice(0,5)};
   }
-  const DRILLS=[
-    {n:"Single‑arm freestyle", w:"Removes the pull on the breathing side so the breath must come from body roll, not a head lift."},
-    {n:"6‑kick / 3‑stroke switch", w:"Trains rotation to air on the side‑kick line — the exact motion a lifter substitutes with pitch."},
-    {n:"“One goggle out” cue", w:"A concrete target: breathe with only the top goggle clearing the surface. Directly caps the lift."},
-    {n:"Exhale‑pattern breathing", w:"Steady humming exhale underwater removes the air‑hunger that triggers the late chin lift."}
-  ];
 
   function render(p){
     CUR=p; computeChart(p);
     $("swimmer").textContent="Swimmer "+(p.swimmer_id||activeKey);
     $("session").textContent=p.session||"";
-    $("mountmeta").textContent="sensor mount offset  ["+(p.mount_offset_deg||[0,0,0]).map(v=>fmt(v,1)).join(", ")+"]°";
+    const gtA = p.archetype ? "   ·   synthetic pattern: "+esc(p.archetype) : "";
+    $("mountmeta").textContent="sensor mount offset  ["+(p.mount_offset_deg||[0,0,0]).map(v=>fmt(v,1)).join(", ")+"]°"+gtA;
     const rot=p.detected_pattern!=="Lifter";
     $("patternLabel").textContent=p.detected_pattern+" — pattern detected";
     $("patternPill").className="pattern"+(rot?" rot":"");
@@ -469,8 +508,9 @@
     $("obsRoll").textContent=fmt(o.apex_roll,0)+"°"; $("tgtRoll").textContent="≈"+fmt(r.apex_roll,0)+"°";
 
     $("summaryTxt").innerHTML=summaryText(p);
-    $("corrections").innerHTML=corrections(p).map(c=>`<li>${c}</li>`).join("");
-    $("drills").innerHTML=DRILLS.map(d=>`<li><b>${d.n}</b><div class="drill-why">${d.w}</div></li>`).join("");
+    const F=buildFindings(p);
+    $("corrections").innerHTML=F.corrections.map(c=>`<li>${c}</li>`).join("");
+    $("drills").innerHTML=F.drills.map(d=>`<li><b>${d.n}</b><div class="drill-why">${d.w}</div></li>`).join("");
 
     $("tblHint").textContent=`${p.breaths.length} breaths · ${s.n_excluded} excluded`;
     $("tbody").innerHTML=p.breaths.map(b=>`<tr class="${b.excluded?"excl":""}">
