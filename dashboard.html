@@ -26703,20 +26703,28 @@
   const WATER=`<line x1="6" y1="120" x2="194" y2="120" stroke="var(--roll)" stroke-width="2" opacity=".55"/>
     <text x="10" y="133" font-size="9" fill="var(--faint)" font-family="var(--mono)" letter-spacing=".05em">WATER LINE</text>`;
 
-  // Human head in left profile (face toward the wall / +x). Rotated about the
-  // ear by -pitch (nose up = tilt back). Returns only the rotating group.
+  // Human head in profile, drawn natively PRONE (face-DOWN into the water) --
+  // the study's zero reference. Swim direction is +x (right): crown forward,
+  // face down, neck trailing back-left. The breath pitch LIFTS the nose up, so
+  // the head rotates by -pitch about the base of the skull (a lift of a few
+  // degrees at the target, more for a lifter).
   function sideHead(pitchDeg){
-    return `<g transform="rotate(${-pitchDeg} 99 95)">
-        <path d="M116,52 C130,54 138,66 139,78 C147,80 154,87 149,92 C146,94 143,94 141,96
-                 C147,99 146,104 138,107 C135,112 135,117 130,121 C124,127 114,128 106,126
-                 L108,151 L84,151 L82,123 C68,117 61,91 66,71 C70,55 104,47 116,52 Z"
+    // The head profile is authored facing right; rotate(90 - pitch) points the
+    // face DOWN at zero (the prone float reference) and a lift rotates the nose
+    // back up. A light body hint sits at the surface, trailing back.
+    return `<path d="M18,127 C44,122 70,122 94,125" fill="none" stroke="var(--ink)"
+              stroke-width="2" opacity=".3" stroke-linecap="round"/>
+      <g transform="rotate(${90 - pitchDeg} 96 96)">
+        <path d="M116,54 C130,56 138,68 139,80 C147,82 154,89 149,94 C146,96 143,96 141,98
+                 C147,101 146,106 138,109 C135,114 135,119 130,123 C124,129 114,130 106,128
+                 C96,126 84,126 78,118 C68,110 61,93 66,73 C70,57 104,49 116,54 Z"
               fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M96,86 a7,9 0 1,0 0.1,0" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".7"/>
-        <path d="M121,73 q7,-3 13,1" fill="none" stroke="var(--ink)" stroke-width="1.6" opacity=".8"/>
-        <circle cx="127" cy="80" r="2.4" fill="var(--ink)"/>
-        <path d="M139,107 q-6,3 -11,1" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>
-        <line x1="99" y1="95" x2="156" y2="95" stroke="var(--pitch)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".85"/>
-        <circle cx="99" cy="95" r="2.6" fill="var(--pitch)"/>
+        <path d="M96,88 a7,9 0 1,0 0.1,0" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".7"/>
+        <path d="M121,75 q7,-3 13,1" fill="none" stroke="var(--ink)" stroke-width="1.6" opacity=".8"/>
+        <circle cx="127" cy="82" r="2.4" fill="var(--ink)"/>
+        <path d="M139,109 q-6,3 -11,1" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>
+        <line x1="96" y1="96" x2="156" y2="96" stroke="var(--pitch)" stroke-width="1.7" stroke-dasharray="4 3" opacity=".9"/>
+        <circle cx="96" cy="96" r="2.6" fill="var(--pitch)"/>
       </g>`;
   }
 
@@ -26739,12 +26747,15 @@
         <line x1="100" y1="42" x2="100" y2="134" stroke="var(--roll)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".85"/>
       </g>`;
   }
+  // Target pose drawn as a clearly dashed outline (no fill) so it reads as
+  // "target" distinctly from the solid observed head; the observed is layered
+  // on top.
   function withGhost(fn,obsV,refV){
     const ghost=fn(refV)
-      .replace(/var\(--ink\)/g,"var(--faint)")
-      .replace(/var\(--panel-2\)/g,"none")
-      .replace(/stroke-width="2.4"/g,'stroke-width="1.4"');
-    return `<g opacity=".34">${ghost}</g>`+fn(obsV);
+      .replace(/fill="var\(--panel-2\)"/g,'fill="none"')
+      .replace(/stroke="var\(--ink\)"/g,'stroke="var(--muted)"')
+      .replace(/stroke-width="2.4"/g,'stroke-width="1.8" stroke-dasharray="5 3.5"');
+    return `<g opacity=".8">${ghost}</g>`+fn(obsV);
   }
 
   function summaryText(p){
