@@ -381,29 +381,53 @@
   cv.addEventListener("touchstart",onMove,{passive:true});
   cv.addEventListener("touchmove",onMove,{passive:true});
 
+  // Water surface, drawn once (outside the rotating head so the ghost/target
+  // overlay doesn't double it).
+  const WATER=`<line x1="6" y1="120" x2="194" y2="120" stroke="var(--roll)" stroke-width="2" opacity=".55"/>
+    <text x="10" y="133" font-size="9" fill="var(--faint)" font-family="var(--mono)" letter-spacing=".05em">WATER LINE</text>`;
+
+  // Human head in left profile (face toward the wall / +x). Rotated about the
+  // ear by -pitch (nose up = tilt back). Returns only the rotating group.
   function sideHead(pitchDeg){
-    return `<line x1="8" y1="118" x2="192" y2="118" stroke="var(--roll)" stroke-width="2" opacity=".5"/>
-      <text x="12" y="132" font-size="9" fill="var(--faint)" font-family="var(--mono)">water</text>
-      <g transform="rotate(${-pitchDeg} 100 96)">
-        <path d="M70,60 q-14,20 -6,40 q4,12 20,18 q26,10 46,-4 q16,-10 16,-34 q0,-30 -30,-38 q-34,-8 -46,18 Z" fill="none" stroke="var(--ink)" stroke-width="2.4"/>
-        <path d="M118,66 q16,4 16,26 q0,6 -6,10" fill="none" stroke="var(--ink)" stroke-width="2" opacity=".55"/>
-        <circle cx="120" cy="84" r="3" fill="var(--pitch)"/>
-        <line x1="100" y1="96" x2="150" y2="96" stroke="var(--pitch)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>
+    return `<g transform="rotate(${-pitchDeg} 99 95)">
+        <path d="M116,52 C130,54 138,66 139,78 C147,80 154,87 149,92 C146,94 143,94 141,96
+                 C147,99 146,104 138,107 C135,112 135,117 130,121 C124,127 114,128 106,126
+                 L108,151 L84,151 L82,123 C68,117 61,91 66,71 C70,55 104,47 116,52 Z"
+              fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M96,86 a7,9 0 1,0 0.1,0" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".7"/>
+        <path d="M121,73 q7,-3 13,1" fill="none" stroke="var(--ink)" stroke-width="1.6" opacity=".8"/>
+        <circle cx="127" cy="80" r="2.4" fill="var(--ink)"/>
+        <path d="M139,107 q-6,3 -11,1" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>
+        <line x1="99" y1="95" x2="156" y2="95" stroke="var(--pitch)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".85"/>
+        <circle cx="99" cy="95" r="2.6" fill="var(--pitch)"/>
       </g>`;
   }
+
+  // Human face, front view. Rotated about the head centre by roll. Returns only
+  // the rotating group.
   function frontHead(rollDeg){
-    return `<line x1="8" y1="118" x2="192" y2="118" stroke="var(--roll)" stroke-width="2" opacity=".5"/>
-      <text x="12" y="132" font-size="9" fill="var(--faint)" font-family="var(--mono)">water</text>
-      <g transform="rotate(${rollDeg} 100 92)">
-        <ellipse cx="100" cy="88" rx="34" ry="42" fill="none" stroke="var(--ink)" stroke-width="2.4"/>
-        <circle cx="88" cy="82" r="3" fill="var(--ink)"/><circle cx="112" cy="82" r="3" fill="var(--ink)"/>
-        <path d="M88,104 q12,8 24,0" fill="none" stroke="var(--ink)" stroke-width="2"/>
-        <line x1="100" y1="46" x2="100" y2="130" stroke="var(--roll)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".7"/>
+    return `<g transform="rotate(${rollDeg} 100 90)">
+        <path d="M65,84 C65,62 78,47 100,47 C122,47 135,62 135,84 C135,104 122,122 100,129
+                 C78,122 65,104 65,84 Z"
+              fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M65,80 q-8,4 -1,15 q5,3 6,-3" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="1.8"/>
+        <path d="M135,80 q8,4 1,15 q-5,3 -6,-3" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="1.8"/>
+        <path d="M78,76 q7,-4 15,-1" fill="none" stroke="var(--ink)" stroke-width="1.6" opacity=".8"/>
+        <path d="M107,75 q8,-3 15,1" fill="none" stroke="var(--ink)" stroke-width="1.6" opacity=".8"/>
+        <ellipse cx="85" cy="84" rx="6.5" ry="3.4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+        <ellipse cx="115" cy="84" rx="6.5" ry="3.4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+        <circle cx="85" cy="84" r="1.8" fill="var(--ink)"/><circle cx="115" cy="84" r="1.8" fill="var(--ink)"/>
+        <path d="M100,88 L96,101 q4,3 8,0" fill="none" stroke="var(--ink)" stroke-width="1.5" opacity=".75"/>
+        <path d="M87,111 q13,7 26,0" fill="none" stroke="var(--ink)" stroke-width="1.8"/>
+        <line x1="100" y1="42" x2="100" y2="134" stroke="var(--roll)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".85"/>
       </g>`;
   }
   function withGhost(fn,obsV,refV){
-    const ghost=fn(refV).replace(/var\(--ink\)/g,"var(--faint)").replace(/stroke-width="2.4"/g,'stroke-width="1.6"');
-    return `<g opacity=".38">${ghost}</g>`+fn(obsV);
+    const ghost=fn(refV)
+      .replace(/var\(--ink\)/g,"var(--faint)")
+      .replace(/var\(--panel-2\)/g,"none")
+      .replace(/stroke-width="2.4"/g,'stroke-width="1.4"');
+    return `<g opacity=".34">${ghost}</g>`+fn(obsV);
   }
 
   function summaryText(p){
@@ -502,8 +526,8 @@
       : "A lifter raises the nose toward the wall to breathe (amber peaks) instead of rotating to it. The amber pitch spikes coincide with the roll peaks at each breath.";
 
     const o=p.observed_apex,r=p.reference;
-    $("headSide").innerHTML=withGhost(sideHead,o.apex_pitch,r.apex_pitch);
-    $("headFront").innerHTML=withGhost(frontHead,o.apex_roll,r.apex_roll);
+    $("headSide").innerHTML=WATER+withGhost(sideHead,o.apex_pitch,r.apex_pitch);
+    $("headFront").innerHTML=WATER+withGhost(frontHead,o.apex_roll,r.apex_roll);
     $("obsPitch").textContent=fmt(o.apex_pitch,0)+"°"; $("tgtPitch").textContent="≈"+fmt(r.apex_pitch,0)+"°";
     $("obsRoll").textContent=fmt(o.apex_roll,0)+"°"; $("tgtRoll").textContent="≈"+fmt(r.apex_roll,0)+"°";
 
