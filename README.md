@@ -25,6 +25,10 @@ sensor / mock ──▶ swimlab pipeline ──▶ export_session.py ──▶ d
   a real Movella DOT export once `swimlab/io.py` is unblocked.
 - **`src/build.py`** — inlines the payload into `src/template.html` to produce the
   single-file `dashboard.html`.
+- **`src/make_session.py`** — writes a full canonical-schema session directory
+  (`t0a/t0b/t0c/trial.parquet`) in one command — the on-disk contract
+  `swimlab.pipeline.run_session` reads, and the template a real Movella DOT export
+  will follow once `swimlab/io.py` exists.
 - **`dashboard.html`** — the built page. Open it directly in any browser; no server,
   no external requests.
 
@@ -53,6 +57,24 @@ python src/export_session.py --mock ROTATOR --seed 7 --out data.json
 
 Archetypes: `LIFTER`, `ROTATOR` (clean technique), `MIXED` (inconsistent),
 `ASYMMETRIC` (left/right imbalance), `FLAT` (barely rolls).
+
+## Generate a full session (parquet) for `run_session`
+
+The viewer's `data.json` is pipeline *output*. To exercise the pipeline itself
+against on-disk files — or to see the "sensor data" layer a real export becomes —
+write a session directory:
+
+```bash
+python src/make_session.py --mock LIFTER --seed 42 --out sessions/s01
+#   -> sessions/s01/{t0a,t0b,t0c,trial}.parquet  (+ ground_truth.json)
+python -c "from swimlab.pipeline import run_session; \
+           t,f = run_session('sessions/s01'); print(t.head()); print('flags:', f)"
+```
+
+`--clean` drops sensor noise (a zero-noise round-trip); `--n-lengths`, `--baseline`,
+and `--mount` vary the swim and the sensor setup. The parquet files carry only the
+canonical schema (`t / quat_* / acc_* / gyr_* / mag_*`) — exactly what `io.py` must
+normalise a real Movella DOT download into.
 
 ## Status & scope
 
