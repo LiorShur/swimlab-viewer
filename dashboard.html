@@ -141,6 +141,8 @@
   ul.drills li{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13.5px}
   ul.drills li b{color:var(--accent)}
   .drill-why{color:var(--muted);font-size:12.5px;margin-top:3px}
+  ul.pts li .cite{display:inline-block;font:600 10.5px/1.5 var(--mono);color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:2px;white-space:nowrap}
 
   .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
   table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
@@ -245,18 +247,18 @@
     </section>
 
     <section class="panel">
-      <div class="panel-h"><h2>Summary</h2><span class="hint">auto‑generated</span></div>
+      <div class="panel-h"><h2>Summary</h2><span class="hint" id="summaryHint">auto‑generated</span></div>
       <p class="summary-txt" id="summaryTxt">—</p>
     </section>
   </div>
 
   <div class="cols">
     <section class="panel">
-      <div class="panel-h"><h2>Points for correction</h2><span class="hint">illustrative</span></div>
+      <div class="panel-h"><h2>Points for correction</h2><span class="hint" id="corrHint">illustrative</span></div>
       <ul class="pts" id="corrections"></ul>
     </section>
     <section class="panel">
-      <div class="panel-h"><h2>Recommended drills</h2><span class="hint">illustrative</span></div>
+      <div class="panel-h"><h2>Recommended drills</h2><span class="hint" id="drillHint">illustrative</span></div>
       <ul class="drills" id="drills"></ul>
     </section>
   </div>
@@ -27006,10 +27008,26 @@
     $("obsRoll").textContent=fmt(o.apex_roll,0)+"°"; $("tgtRoll").textContent="≈"+fmt(r.apex_roll,0)+"°";
     resetAnim();
 
-    $("summaryTxt").innerHTML=summaryText(p);
-    const F=buildFindings(p);
-    $("corrections").innerHTML=F.corrections.map(c=>`<li>${c}</li>`).join("");
-    $("drills").innerHTML=F.drills.map(d=>`<li><b>${d.n}</b><div class="drill-why">${d.w}</div></li>`).join("");
+    // Interpretation layer: use the Claude-generated narrative when the payload
+    // carries one (export_session.py --narrate), else the built-in rule-based
+    // text. The metrics/plots/classification above are always the deterministic
+    // pipeline's — the LLM only rewrites this prose, still hypothesis-based.
+    const nar=p.narrative;
+    if(nar){
+      const badge=`AI‑generated · ${esc(nar.model||"Claude")}`;
+      $("summaryHint").textContent=badge; $("corrHint").textContent=badge; $("drillHint").textContent=badge;
+      $("summaryTxt").innerHTML=esc(nar.summary);
+      $("corrections").innerHTML=(nar.corrections||[]).map(c=>
+        `<li>${esc(c.point)}${c.metric?` <span class="cite">${esc(c.metric)}</span>`:""}</li>`).join("");
+      $("drills").innerHTML=(nar.drills||[]).map(d=>
+        `<li><b>${esc(d.name)}</b><div class="drill-why">${esc(d.why)}</div></li>`).join("");
+    } else {
+      $("summaryHint").textContent="auto‑generated"; $("corrHint").textContent="illustrative"; $("drillHint").textContent="illustrative";
+      $("summaryTxt").innerHTML=summaryText(p);
+      const F=buildFindings(p);
+      $("corrections").innerHTML=F.corrections.map(c=>`<li>${c}</li>`).join("");
+      $("drills").innerHTML=F.drills.map(d=>`<li><b>${d.n}</b><div class="drill-why">${d.w}</div></li>`).join("");
+    }
 
     $("tblHint").textContent=`${p.breaths.length} breaths · ${s.n_excluded} excluded`;
     $("tbody").innerHTML=p.breaths.map(b=>`<tr class="${b.excluded?"excl":""}">

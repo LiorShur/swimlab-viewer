@@ -162,7 +162,23 @@ def from_mock(archetype: str, seed: int, baseline: float,
     return _package(cal, gt, pb, summ, pushoffs, flags)
 
 
-def build_set() -> dict:
+def add_narrative(payload: dict, model: str) -> dict:
+    """Attach an LLM-generated interpretation (``payload["narrative"]``) in place.
+
+    Deterministic analysis is already done; this only rewrites the *interpretation*
+    layer. Any failure (no key, no SDK, API/refusal error) is caught and the
+    payload is returned unchanged, so the viewer falls back to its rule-based text.
+    """
+    import narrate
+    try:
+        payload["narrative"] = narrate.narrate_payload(payload, model=model)
+        print(f"    narrated with {payload['narrative']['model']}")
+    except Exception as e:  # noqa: BLE001 - degrade gracefully, never block export
+        print(f"    narration skipped ({e}); using rule-based text")
+    return payload
+
+
+def build_set(narrate_model: str | None = None) -> dict:
     """Run the prefab swimmers through the pipeline into a multi-session bundle
     (``{sessions: {label: payload}, default: label}``) for the viewer dropdown."""
     sessions = {}
@@ -173,6 +189,8 @@ def build_set() -> dict:
               f"mean_d_pitch={s['mean_d_pitch_breath']:5.1f}°  "
               f"valid={s['n_valid']}/{s['n_breaths']}  "
               f"flags={sessions[label]['flags'] or 'none'}")
+        if narrate_model:
+            add_narrative(sessions[label], narrate_model)
     return {"sessions": sessions, "default": _PREFAB[0][0]}
 
 
@@ -208,12 +226,18 @@ def main() -> None:
                     help="sensor slip during the swim, deg/min")
     ap.add_argument("--clean", action="store_true",
                     help="no sensor noise (a clean round-trip)")
+    ap.add_argument("--narrate", action="store_true",
+                    help="generate the summary/corrections/drills with Claude "
+                         "(needs ANTHROPIC_API_KEY; falls back to rule-based text)")
+    ap.add_argument("--narrate-model", default="claude-opus-5",
+                    help="model id for --narrate (default: claude-opus-5)")
     ap.add_argument("--out", type=Path, default=Path("data.json"))
     args = ap.parse_args()
+    narrate_model = args.narrate_model if args.narrate else None
 
     if args.set:
         print("building prefab swimmer set:")
-        payload = build_set()
+        payload = build_set(narrate_model=narrate_model)
         args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"wrote {args.out} — {len(payload['sessions'])} swimmers")
         return
@@ -225,6 +249,8 @@ def main() -> None:
             breathe_every_n_strokes=args.breathe_every,
             mount_slip_deg_per_min=args.mount_slip, noise=not args.clean,
         )
+        if narrate_model:
+            add_narrative(payload, narrate_model)
     else:
         payload = from_session(args.session)
 
