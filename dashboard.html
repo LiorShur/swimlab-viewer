@@ -123,6 +123,13 @@
   .head-fig .reads .o{color:var(--pitch);font-family:var(--mono);font-weight:600}
   .head-fig .reads .r{color:var(--roll);font-family:var(--mono);font-weight:600}
   .head-fig .reads .tgt{color:var(--muted)}
+  .anim{display:flex;gap:9px;align-items:center;margin:14px 2px 2px;flex-wrap:wrap}
+  .anim .btn{padding:7px 11px;font-size:12.5px}
+  .anim .btn.on{color:var(--ink);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+  .anim input[type=range]{flex:1 1 110px;min-width:100px;accent-color:var(--accent);height:4px;cursor:pointer}
+  .anim .tspan{font:600 12px/1 var(--mono);color:var(--muted);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+  .anim .spd{font:600 11px/1 var(--mono);letter-spacing:.04em;color:var(--faint)}
+  canvas{cursor:crosshair}
 
   .summary-txt{font-size:14.5px;color:var(--ink)}
   .summary-txt strong{color:var(--pitch)}
@@ -227,7 +234,14 @@
           <div class="reads"><span class="r" id="obsRoll">—</span> observed &nbsp;·&nbsp; <span class="tgt" id="tgtRoll">—</span> target</div>
         </div>
       </div>
-      <div class="disc">The target pose (rotate to air, minimal lift) encodes the study's hypothesis about efficient breathing. It is a reference for this demo, <b>not</b> a validated optimum.</div>
+      <div class="anim" id="animBar">
+        <button class="btn play" id="playBtn" aria-label="Play or pause the head animation"><span id="playIcon">▶</span>&nbsp;<span id="playTxt">Play swim</span></button>
+        <button class="btn ghost" id="loopBtn" aria-label="Loop a single breath">↻&nbsp;Loop breath</button>
+        <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Scrub the swim timeline">
+        <span class="tspan" id="animTime">0.0s</span>
+        <button class="btn ghost spd" id="spdBtn" aria-label="Playback speed">2×</button>
+      </div>
+      <div class="disc">The heads animate from the recorded per‑frame pitch/roll — press play to watch the movement, or <b>Loop breath</b> to repeat one breath cycle. The target pose (rotate to air, minimal lift) encodes the study's hypothesis about efficient breathing; it is a reference for this demo, <b>not</b> a validated optimum.</div>
     </section>
 
     <section class="panel">
@@ -26638,7 +26652,7 @@
   /* chart state (recomputed per render) */
   const cv=$("chart"), tt=$("tt");
   const PAD={l:46,r:14,t:14,b:26};
-  let D=null,tMin=0,tMax=1,YR={lo:-30,hi:90},W=0,H=0,dpr=1,plot={},CUR=null;
+  let D=null,tMin=0,tMax=1,YR={lo:-30,hi:90},W=0,H=0,dpr=1,plot={},CUR=null,PLAYHEAD=null;
 
   function computeChart(p){
     D=p.traces; tMin=D.t[0]; tMax=D.t[D.t.length-1];
@@ -26677,6 +26691,13 @@
     const line=(arr,color,wdt)=>{ ctx.strokeStyle=color; ctx.lineWidth=wdt; ctx.lineJoin="round";
       ctx.beginPath(); for(let i=0;i<arr.length;i++){ const x=X(D.t[i]),y=Y(arr[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke(); };
     line(D.roll,cRoll,1.3); line(D.pitch,cPitch,1.6);
+    if(PLAYHEAD!=null){
+      const x=X(PLAYHEAD), s=sampleAt(PLAYHEAD);
+      ctx.strokeStyle=css("--ink"); ctx.globalAlpha=.8; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x,plot.y0); ctx.lineTo(x,plot.y1); ctx.stroke(); ctx.globalAlpha=1;
+      const mk=(v,c)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,Y(v),3.6,0,7); ctx.fill(); };
+      mk(s.roll,cRoll); mk(s.pitch,cPitch);
+    }
   }
   function onMove(ev){
     if(!D) return;
@@ -26742,23 +26763,32 @@
       <path d="M162,110 q3,3 6,3" fill="none" stroke="var(--ink)" stroke-width="1.7"/>
       <path d="M150,132 q-7,4 -13,1" fill="none" stroke="var(--ink)" stroke-width="1.7"/>`;
   }
+  function sidePose(pitch){return `translate(${S_AT[0]} ${S_AT[1]}) rotate(${90-pitch}) scale(${S_SC}) translate(${-S_C[0]} ${-S_C[1]})`;}
+  function sideContent(){return `<path d="${S_OUT}" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>${sideFeatures()}`;}
   function sideHead(pitch,ghost){
-    const t=`translate(${S_AT[0]} ${S_AT[1]}) rotate(${90-pitch}) scale(${S_SC}) translate(${-S_C[0]} ${-S_C[1]})`;
-    if(ghost) return `<g transform="${t}" opacity=".38"><path d="${S_OUT}" fill="none" stroke="var(--muted)"
+    if(ghost) return `<g transform="${sidePose(pitch)}" opacity=".38"><path d="${S_OUT}" fill="none" stroke="var(--muted)"
         stroke-width="2.2" stroke-dasharray="7 5" stroke-linejoin="round"/></g>`;
-    return `<g transform="${t}"><path d="${S_OUT}" fill="var(--panel-2)" stroke="var(--ink)"
-        stroke-width="2.4" stroke-linejoin="round"/>${sideFeatures()}</g>`;
+    return `<g transform="${sidePose(pitch)}">${sideContent()}</g>`;
   }
-  function headSideSVG(obs,ref){
+  // live=true omits the static delta arc (the observed head/axis then update per
+  // frame via setSidePose during playback).
+  function headSideSVG(obs,ref,live){
     const [cx,cy]=S_AT,L=96,[ox,oy]=hray(cx,cy,obs,L),[rx,ry]=hray(cx,cy,ref,L);
     return `<rect x="0" y="${S_WY}" width="${HVW}" height="${HVH-S_WY}" fill="var(--roll)" opacity=".07"/>
       ${sideHead(ref,true)}
-      ${sideHead(obs,false)}
+      <g id="sHead" transform="${sidePose(obs)}">${sideContent()}</g>
       <line x1="${cx}" y1="${cy}" x2="${rx.toFixed(1)}" y2="${ry.toFixed(1)}" stroke="var(--pitch)" stroke-width="2.3" stroke-dasharray="6 5" stroke-linecap="round" opacity=".9"/>
-      <line x1="${cx}" y1="${cy}" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="var(--pitch)" stroke-width="2.6" stroke-linecap="round"/>
-      ${headGap(cx,cy,ref,obs,58,'var(--pitch)')}
+      <line id="sAxis" x1="${cx}" y1="${cy}" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="var(--pitch)" stroke-width="2.6" stroke-linecap="round"/>
+      <g id="sGap">${live?"":headGap(cx,cy,ref,obs,58,'var(--pitch)')}</g>
       ${headWater(S_WY)}
       <circle cx="${cx}" cy="${cy}" r="3" fill="var(--pitch)"/>`;
+  }
+  function setSidePose(pitch){
+    const g=$("sHead"); if(!g) return;
+    g.setAttribute("transform",sidePose(pitch));
+    const [cx,cy]=S_AT,[ox,oy]=hray(cx,cy,pitch,96),a=$("sAxis");
+    if(a){a.setAttribute("x2",ox.toFixed(1)); a.setAttribute("y2",oy.toFixed(1));}
+    $("obsPitch").textContent=Math.round(pitch)+"°";
   }
 
   // FRONT (roll). Realistic face rotated by roll about its centre. The water line
@@ -26780,23 +26810,99 @@
       <path d="M103,120 q15,6 30,0" fill="none" stroke="var(--ink)" stroke-width="1.9"/>
       <path d="M106,126 q12,5 24,0" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
   }
+  function frontPose(roll){return `translate(${F_AT[0]} ${F_AT[1]}) rotate(${roll}) scale(${F_SC}) translate(${-F_C[0]} ${-F_C[1]})`;}
+  function frontContent(){return `<path d="${F_OUT}" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>${frontFeatures()}`;}
   function frontHead(roll,ghost){
-    const t=`translate(${F_AT[0]} ${F_AT[1]}) rotate(${roll}) scale(${F_SC}) translate(${-F_C[0]} ${-F_C[1]})`;
-    if(ghost) return `<g transform="${t}" opacity=".38"><path d="${F_OUT}" fill="none" stroke="var(--muted)"
+    if(ghost) return `<g transform="${frontPose(roll)}" opacity=".38"><path d="${F_OUT}" fill="none" stroke="var(--muted)"
         stroke-width="2.2" stroke-dasharray="7 5" stroke-linejoin="round"/></g>`;
-    return `<g transform="${t}"><path d="${F_OUT}" fill="var(--panel-2)" stroke="var(--ink)"
-        stroke-width="2.4" stroke-linejoin="round"/>${frontFeatures()}</g>`;
+    return `<g transform="${frontPose(roll)}">${frontContent()}</g>`;
   }
-  function headFrontSVG(obs,ref){
-    const [cx,cy]=F_AT,L=60,[ox,oy]=hray(cx,cy,90-obs,L),[rx,ry]=hray(cx,cy,90-ref,L),[ox2,oy2]=hray(cx,cy,270-obs,42);
+  function headFrontSVG(obs,ref,live){
+    const [cx,cy]=F_AT;
     return `<rect x="0" y="${F_WY}" width="${HVW}" height="${HVH-F_WY}" fill="var(--roll)" opacity=".07"/>
       ${frontHead(ref,true)}
-      ${frontHead(obs,false)}
-      <line x1="${rx.toFixed(1)}" y1="${ry.toFixed(1)}" x2="${cx}" y2="${cy}" stroke="var(--roll)" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round" opacity=".9"/>
-      <line x1="${ox.toFixed(1)}" y1="${oy.toFixed(1)}" x2="${ox2.toFixed(1)}" y2="${oy2.toFixed(1)}" stroke="var(--roll)" stroke-width="2.5" stroke-linecap="round"/>
-      ${headGap(cx,cy,90-obs,90-ref,50,'var(--roll)')}
+      <g id="fHead" transform="${frontPose(obs)}">${frontContent()}</g>
+      <line x1="${cx}" y1="${cy-60}" x2="${cx}" y2="${cy}" transform="rotate(${ref} ${cx} ${cy})" stroke="var(--roll)" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round" opacity=".9"/>
+      <line id="fMid" x1="${cx}" y1="${cy-60}" x2="${cx}" y2="${cy+42}" transform="rotate(${obs} ${cx} ${cy})" stroke="var(--roll)" stroke-width="2.5" stroke-linecap="round"/>
+      <g id="fGap">${live?"":headGap(cx,cy,90-obs,90-ref,50,'var(--roll)')}</g>
       ${headWater(F_WY)}`;
   }
+  function setFrontPose(roll){
+    const g=$("fHead"); if(!g) return;
+    g.setAttribute("transform",frontPose(roll));
+    const m=$("fMid"); if(m) m.setAttribute("transform",`rotate(${roll} ${F_AT[0]} ${F_AT[1]})`);
+    $("obsRoll").textContent=Math.round(Math.abs(roll))+"°";
+  }
+
+  // --- Head animation: drive the two heads from the recorded pitch/roll traces.
+  const ANIM={raf:0,playing:false,mode:"full",speed:2,t:0,lo:0,hi:1,last:0,live:false};
+  function sampleAt(t){                         // linear-interpolated pitch/roll at time t
+    const n=D.t.length; let f=(t-tMin)/(tMax-tMin)*(n-1);
+    if(!isFinite(f)) f=0; let i=Math.floor(f); if(i<0)i=0; if(i>n-2)i=n-2; const a=f-i;
+    return {pitch:D.pitch[i]+(D.pitch[i+1]-D.pitch[i])*a, roll:D.roll[i]+(D.roll[i+1]-D.roll[i])*a};
+  }
+  function pickBreath(){                         // clearest non-excluded breath (max |roll|)
+    const v=(CUR.breaths||[]).filter(b=>!b.excluded&&b.t_start!=null&&b.t_end!=null);
+    if(!v.length) return null;
+    return v.reduce((a,b)=>Math.abs(b.peak_roll_breath||0)>Math.abs(a.peak_roll_breath||0)?b:a);
+  }
+  function enterLive(){                          // swap the static apex figure for the animated scaffold
+    if(ANIM.live||!D) return;
+    const r=CUR.reference, s=sampleAt(ANIM.t);
+    $("headSide").innerHTML=headSideSVG(s.pitch,r.apex_pitch,true);
+    $("headFront").innerHTML=headFrontSVG(s.roll,r.apex_roll,true);
+    ANIM.live=true;
+  }
+  function applyFrame(){
+    const s=sampleAt(ANIM.t); setSidePose(s.pitch); setFrontPose(s.roll);
+    PLAYHEAD=ANIM.t; draw();
+    $("scrub").value=Math.round((ANIM.t-tMin)/(tMax-tMin)*1000);
+    $("animTime").textContent=ANIM.t.toFixed(1)+"s";
+  }
+  function tick(now){
+    const dt=(now-ANIM.last)/1000*ANIM.speed; ANIM.last=now; ANIM.t+=dt;
+    if(ANIM.t>=ANIM.hi){
+      if(ANIM.mode==="breath"){ ANIM.t=ANIM.lo; }
+      else { ANIM.t=ANIM.hi; applyFrame(); animPause(); return; }
+    }
+    applyFrame(); ANIM.raf=requestAnimationFrame(tick);
+  }
+  function animPlay(mode){
+    if(!D) return;
+    enterLive(); ANIM.mode=mode;
+    if(mode==="breath"){
+      const b=pickBreath(); if(!b){ toast("No clear breath to loop for this swimmer",true); return; }
+      ANIM.lo=Math.max(tMin,b.t_start-0.8); ANIM.hi=Math.min(tMax,b.t_end+0.8);
+      if(ANIM.t<ANIM.lo||ANIM.t>=ANIM.hi) ANIM.t=ANIM.lo;
+    } else { ANIM.lo=tMin; ANIM.hi=tMax; if(ANIM.t>=ANIM.hi-1e-6) ANIM.t=tMin; }
+    ANIM.playing=true; ANIM.last=performance.now(); setPlayUI();
+    cancelAnimationFrame(ANIM.raf); ANIM.raf=requestAnimationFrame(tick);
+  }
+  function animPause(){ ANIM.playing=false; cancelAnimationFrame(ANIM.raf); setPlayUI(); }
+  function setPlayUI(){
+    const full=ANIM.playing&&ANIM.mode==="full", loop=ANIM.playing&&ANIM.mode==="breath";
+    $("playIcon").textContent=full?"⏸":"▶"; $("playTxt").textContent=full?"Pause":"Play swim";
+    $("playBtn").classList.toggle("on",full);
+    $("loopBtn").textContent=loop?"⏸ Looping…":"↻ Loop breath";
+    $("loopBtn").classList.toggle("on",loop);
+  }
+  function resetAnim(){                          // back to the static apex figure (new swimmer / theme)
+    animPause(); ANIM.live=false; ANIM.mode="full"; ANIM.t=tMin; PLAYHEAD=null;
+    if($("scrub")){ $("scrub").value=0; $("animTime").textContent="0.0s"; }
+  }
+  function scrubTo(frac){
+    enterLive(); animPause(); ANIM.mode="full";
+    ANIM.t=tMin+Math.max(0,Math.min(1,frac))*(tMax-tMin); applyFrame();
+  }
+  $("playBtn").addEventListener("click",()=>{ (ANIM.playing&&ANIM.mode==="full")?animPause():animPlay("full"); });
+  $("loopBtn").addEventListener("click",()=>{ (ANIM.playing&&ANIM.mode==="breath")?animPause():animPlay("breath"); });
+  $("scrub").addEventListener("input",()=>scrubTo($("scrub").value/1000));
+  $("spdBtn").addEventListener("click",()=>{ const seq=[1,2,4,8]; ANIM.speed=seq[(seq.indexOf(ANIM.speed)+1)%seq.length]; $("spdBtn").textContent=ANIM.speed+"×"; });
+  cv.addEventListener("click",ev=>{
+    if(!D) return; const rect=cv.getBoundingClientRect(), px=ev.clientX-rect.left;
+    if(px<plot.x0||px>plot.x1) return;
+    scrubTo((px-plot.x0)/(plot.x1-plot.x0));
+  });
 
   function summaryText(p){
     const s=p.summary, lifter=p.detected_pattern==="Lifter", asym=s.asymmetry_index, side=asym>0?"left":"right";
@@ -26898,6 +27004,7 @@
     $("headFront").innerHTML=headFrontSVG(o.apex_roll,r.apex_roll);
     $("obsPitch").textContent=fmt(o.apex_pitch,0)+"°"; $("tgtPitch").textContent="≈"+fmt(r.apex_pitch,0)+"°";
     $("obsRoll").textContent=fmt(o.apex_roll,0)+"°"; $("tgtRoll").textContent="≈"+fmt(r.apex_roll,0)+"°";
+    resetAnim();
 
     $("summaryTxt").innerHTML=summaryText(p);
     const F=buildFindings(p);
