@@ -141,8 +141,9 @@
   ul.drills li{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13.5px}
   ul.drills li b{color:var(--accent)}
   .drill-why{color:var(--muted);font-size:12.5px;margin-top:3px}
-  ul.pts li .cite{display:inline-block;font:600 10.5px/1.5 var(--mono);color:var(--muted);
-    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:2px;white-space:nowrap}
+  ul.pts li .pt-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+  ul.pts li .cite{align-self:flex-start;max-width:100%;font:600 10.5px/1.55 var(--mono);color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:normal}
 
   .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
   table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
@@ -27018,7 +27019,7 @@
       $("summaryHint").textContent=badge; $("corrHint").textContent=badge; $("drillHint").textContent=badge;
       $("summaryTxt").innerHTML=esc(nar.summary);
       $("corrections").innerHTML=(nar.corrections||[]).map(c=>
-        `<li>${esc(c.point)}${c.metric?` <span class="cite">${esc(c.metric)}</span>`:""}</li>`).join("");
+        `<li><div class="pt-col"><span>${esc(c.point)}</span>${c.metric?`<span class="cite">${esc(c.metric)}</span>`:""}</div></li>`).join("");
       $("drills").innerHTML=(nar.drills||[]).map(d=>
         `<li><b>${esc(d.name)}</b><div class="drill-why">${esc(d.why)}</div></li>`).join("");
     } else {
