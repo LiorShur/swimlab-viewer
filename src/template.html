@@ -187,6 +187,7 @@
     </div>
     <button class="btn" id="importBtn" title="Load a data.json exported by export_session.py">⇪ Import session…</button>
     <input type="file" id="fileInput" accept="application/json,.json" hidden>
+    <button class="btn" id="narrateBtn" title="Re-write the interpretation with Claude, live via the narration proxy">✨ Narrate live</button>
     <div class="grow"></div>
     <button class="btn ghost" id="themeBtn" aria-label="Toggle colour theme">◐ Theme</button>
   </div>
@@ -328,6 +329,61 @@
     };
     reader.readAsText(file);
   });
+
+  /* Live narration: POST the active session's metrics to the Cloudflare Worker
+     (worker/narrate-worker.js), which holds the Anthropic key server-side and
+     returns the same {summary, corrections, drills, model} shape as
+     export_session.py --narrate. The key never touches the browser. */
+  const qs = new URLSearchParams(location.search);
+  function saveCfg(key, val){ if(val){ try{ localStorage.setItem(key, val); }catch(e){} } return val; }
+  function narrateUrl(){
+    return (typeof window!=="undefined" && window.SWIMLAB_NARRATE_URL)
+      || saveCfg("swimlab.narrateUrl", qs.get("narrate"))
+      || (()=>{ try{ return localStorage.getItem("swimlab.narrateUrl"); }catch(e){ return null; } })();
+  }
+  function narrateKey(){
+    return saveCfg("swimlab.narrateKey", qs.get("narrateKey"))
+      || (()=>{ try{ return localStorage.getItem("swimlab.narrateKey"); }catch(e){ return null; } })();
+  }
+  // Only the metrics the worker's fact table reads — never the raw traces.
+  function metricsFor(p){
+    return {
+      session: p.session, detected_pattern: p.detected_pattern,
+      gate_threshold_deg: p.gate_threshold_deg, archetype: p.archetype,
+      flags: p.flags, summary: p.summary, breaths: p.breaths,
+    };
+  }
+  async function narrateLive(){
+    let url = narrateUrl();
+    if(!url){
+      url = prompt("Narration proxy URL (your Cloudflare Worker endpoint):", "");
+      if(!url) return;
+      url = url.trim(); saveCfg("swimlab.narrateUrl", url);
+    }
+    const p = SESSIONS[activeKey];
+    if(!p){ toast("No session selected.", true); return; }
+    const btn = $("narrateBtn");
+    const prev = btn.textContent;
+    btn.disabled = true; btn.textContent = "✨ Narrating…";
+    $("summaryHint").textContent = "asking Claude…";
+    try{
+      const headers = {"Content-Type":"application/json"};
+      const k = narrateKey(); if(k) headers["X-Narrate-Key"] = k;
+      const resp = await fetch(url, {method:"POST", headers, body: JSON.stringify(metricsFor(p))});
+      const data = await resp.json().catch(()=>({error:"non-JSON response ("+resp.status+")"}));
+      if(!resp.ok || data.error) throw new Error(data.error || ("HTTP "+resp.status));
+      if(!data.summary || !data.corrections || !data.drills) throw new Error("unexpected response shape");
+      p.narrative = data;               // attach and re-render through the same path as baked narratives
+      render(p);
+      toast("Narrated live with "+(data.model||"Claude"));
+    }catch(e){
+      toast("Live narration failed: "+e.message, true);
+      render(p);                        // restore hints/text
+    }finally{
+      btn.disabled = false; btn.textContent = prev;
+    }
+  }
+  $("narrateBtn").addEventListener("click", narrateLive);
 
   let toastTimer;
   function toast(msg,err){

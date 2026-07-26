@@ -1,0 +1,15 @@
+# Cloudflare Worker config for the swimlab-viewer live-narration proxy.
+# Deploy: `cd worker && npx wrangler deploy`
+name = "swimlab-narrate"
+main = "narrate-worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# Lock CORS to your GitHub Pages origin. Change to your username's Pages URL.
+# Use "*" only for local testing — a public "*" lets any website call your key.
+ALLOWED_ORIGIN = "https://liorshur.github.io"
+# NARRATE_MODEL = "claude-opus-5"   # optional override
+
+# Secrets are NOT stored here. Set them once with wrangler:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put SHARED_SECRET     # optional
