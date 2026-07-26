@@ -57,6 +57,17 @@ side, or whether a pattern drifts with fatigue across the swim).
 Return: a one-paragraph summary, 3–6 correction points (each with its grounding \
 metric), and 3–5 drills (each with a swimmer-specific reason).`;
 
+// Language addendum. The fact table and metric names stay as given; only the
+// prose Claude writes changes language. Mirror this in narrate.py.
+const LANG_INSTRUCTION = {
+  he:
+    "\n\nWrite ALL prose you produce — the summary, every correction \"point\", " +
+    "and every drill \"name\" and \"why\" — in natural, coach-facing Hebrew. " +
+    "Keep the grounding \"metric\" strings and all numbers, units and symbols " +
+    "(e.g. Δpitch, °, the gate value) exactly as in the fact table. Pick drills " +
+    "from the English menu but translate the chosen name into Hebrew.",
+};
+
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -195,6 +206,8 @@ export default {
     }
 
     const model = env.NARRATE_MODEL || "claude-opus-5";
+    const lang = typeof payload.lang === "string" ? payload.lang : "en";
+    const system = SYSTEM + (LANG_INSTRUCTION[lang] || "");
     let apiResp;
     try {
       apiResp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -207,7 +220,7 @@ export default {
         body: JSON.stringify({
           model,
           max_tokens: 2000,
-          system: SYSTEM,
+          system,
           output_config: {
             format: { type: "json_schema", schema: SCHEMA },
             effort: "low",
@@ -240,6 +253,7 @@ export default {
       return json({ error: "model output was not valid JSON" }, 502, cors);
     }
     narrative.model = data.model || model;
+    narrative.lang = lang;
     return json(narrative, 200, cors);
   },
 };

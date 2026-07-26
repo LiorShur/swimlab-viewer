@@ -61,6 +61,20 @@ side, or whether a pattern drifts with fatigue across the swim).
 Return: a one-paragraph summary, 3–6 correction points (each with its grounding \
 metric), and 3–5 drills (each with a swimmer-specific reason)."""
 
+# Language addendum — only the prose Claude writes changes language; the fact
+# table, metric names, numbers and units stay as given. Mirror in the Worker
+# (worker/narrate-worker.js LANG_INSTRUCTION).
+_LANG_INSTRUCTION = {
+    "he": (
+        "\n\nWrite ALL prose you produce — the summary, every correction "
+        '"point", and every drill "name" and "why" — in natural, coach-facing '
+        "Hebrew. Keep the grounding \"metric\" strings and all numbers, units "
+        "and symbols (e.g. Δpitch, °, the gate value) exactly as in the fact "
+        "table. Pick drills from the English menu but translate the chosen name "
+        "into Hebrew."
+    ),
+}
+
 _SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -139,12 +153,15 @@ def _fact_table(payload: dict) -> str:
 
 
 def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
-                    api_key: str | None = None, effort: str = "low") -> dict:
+                    api_key: str | None = None, effort: str = "low",
+                    lang: str = "en") -> dict:
     """Call Claude to produce a grounded interpretation for one swimmer payload.
 
-    Returns a dict ``{summary, corrections, drills, model}`` ready to attach to
-    the payload as ``payload["narrative"]``. Raises on any failure (missing SDK,
-    missing key, API error, refusal) so the caller can fall back cleanly.
+    Returns a dict ``{summary, corrections, drills, model, lang}`` ready to attach
+    to the payload as ``payload["narrative"]``. ``lang`` selects the output
+    language ("en" default, "he" for Hebrew) — only the prose changes; the fact
+    table and metric citations stay as computed. Raises on any failure (missing
+    SDK, missing key, API error, refusal) so the caller can fall back cleanly.
     """
     try:
         import anthropic
@@ -158,7 +175,7 @@ def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
     resp = client.messages.create(
         model=model,
         max_tokens=2000,
-        system=_SYSTEM,
+        system=_SYSTEM + _LANG_INSTRUCTION.get(lang, ""),
         output_config={"format": {"type": "json_schema", "schema": _SCHEMA},
                        "effort": effort},
         messages=[{"role": "user", "content": _fact_table(payload)}],
@@ -176,4 +193,5 @@ def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
         raise RuntimeError("No text block in the response.")
     data = json.loads(text)  # schema-constrained, so this parses
     data["model"] = resp.model
+    data["lang"] = lang
     return data

@@ -162,23 +162,24 @@ def from_mock(archetype: str, seed: int, baseline: float,
     return _package(cal, gt, pb, summ, pushoffs, flags)
 
 
-def add_narrative(payload: dict, model: str) -> dict:
+def add_narrative(payload: dict, model: str, lang: str = "en") -> dict:
     """Attach an LLM-generated interpretation (``payload["narrative"]``) in place.
 
     Deterministic analysis is already done; this only rewrites the *interpretation*
-    layer. Any failure (no key, no SDK, API/refusal error) is caught and the
-    payload is returned unchanged, so the viewer falls back to its rule-based text.
+    layer, in ``lang`` ("en" default, "he" for Hebrew). Any failure (no key, no
+    SDK, API/refusal error) is caught and the payload is returned unchanged, so
+    the viewer falls back to its rule-based text.
     """
     import narrate
     try:
-        payload["narrative"] = narrate.narrate_payload(payload, model=model)
-        print(f"    narrated with {payload['narrative']['model']}")
+        payload["narrative"] = narrate.narrate_payload(payload, model=model, lang=lang)
+        print(f"    narrated with {payload['narrative']['model']} ({lang})")
     except Exception as e:  # noqa: BLE001 - degrade gracefully, never block export
         print(f"    narration skipped ({e}); using rule-based text")
     return payload
 
 
-def build_set(narrate_model: str | None = None) -> dict:
+def build_set(narrate_model: str | None = None, lang: str = "en") -> dict:
     """Run the prefab swimmers through the pipeline into a multi-session bundle
     (``{sessions: {label: payload}, default: label}``) for the viewer dropdown."""
     sessions = {}
@@ -190,7 +191,7 @@ def build_set(narrate_model: str | None = None) -> dict:
               f"valid={s['n_valid']}/{s['n_breaths']}  "
               f"flags={sessions[label]['flags'] or 'none'}")
         if narrate_model:
-            add_narrative(sessions[label], narrate_model)
+            add_narrative(sessions[label], narrate_model, lang=lang)
     return {"sessions": sessions, "default": _PREFAB[0][0]}
 
 
@@ -231,13 +232,15 @@ def main() -> None:
                          "(needs ANTHROPIC_API_KEY; falls back to rule-based text)")
     ap.add_argument("--narrate-model", default="claude-opus-5",
                     help="model id for --narrate (default: claude-opus-5)")
+    ap.add_argument("--lang", default="en", choices=["en", "he"],
+                    help="language for --narrate prose (default: en; he = Hebrew)")
     ap.add_argument("--out", type=Path, default=Path("data.json"))
     args = ap.parse_args()
     narrate_model = args.narrate_model if args.narrate else None
 
     if args.set:
         print("building prefab swimmer set:")
-        payload = build_set(narrate_model=narrate_model)
+        payload = build_set(narrate_model=narrate_model, lang=args.lang)
         args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"wrote {args.out} — {len(payload['sessions'])} swimmers")
         return
@@ -250,7 +253,7 @@ def main() -> None:
             mount_slip_deg_per_min=args.mount_slip, noise=not args.clean,
         )
         if narrate_model:
-            add_narrative(payload, narrate_model)
+            add_narrative(payload, narrate_model, lang=args.lang)
     else:
         payload = from_session(args.session)
 

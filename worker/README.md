@@ -45,6 +45,21 @@ Then click **✨ Narrate live** — it narrates whichever swimmer is selected (o
 session you just imported) and swaps in Claude's text under an "AI-generated"
 badge.
 
+## Language (English / Hebrew)
+
+The page has an EN/HE toggle (🌐). Static UI, the rule-based fallback text, and
+the live AI narration all follow it — the page sends `{lang: "he"}` in the
+request body and the Worker instructs Claude to write the prose in Hebrew (only
+the prose changes; the metric citations and numbers stay as computed). Narratives
+are cached per language, so switching languages shows the right one without a
+re-call. The default is Hebrew; the choice persists in `localStorage`.
+
+To bake Hebrew narratives offline instead of calling live, pass `--lang he`:
+
+```bash
+python src/export_session.py --set --narrate --lang he --out sessions.json
+```
+
 ## Optional shared secret
 
 For a bit of extra friction, set a secret and the Worker will require a matching
