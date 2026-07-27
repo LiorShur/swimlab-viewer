@@ -54,24 +54,43 @@ side, or whether a pattern drifts with fatigue across the swim).
 "why" tailored to THIS swimmer's numbers.
 - Be concise and readable. Coach-facing, plain sentences, no hype.
 
-Return: a one-paragraph summary, 3–6 correction points (each with its grounding \
-metric), and 3–5 drills (each with a swimmer-specific reason).`;
+You write TWO layers from the same numbers:
+
+1. A COACH layer (detailed): a one-paragraph summary, 3–6 correction points \
+(each with its grounding metric), and 3–5 drills (each with a swimmer-specific \
+reason). This is the technical read described above.
+
+2. A SWIMMER layer (plain): for the recreational swimmer themselves, not a coach.
+- headline: ONE short sentence, ~10 words max, NO metric names and NO numbers, \
+saying in plain terms what their breathing does (e.g. "You lift your head to \
+breathe" or "Your breathing looks efficient").
+- swimmer_summary: 2 short sentences, warm and encouraging, explaining what it \
+means and why it matters — still no jargon, no numbers, no degrees.
+- swimmer_actions: 2–3 very short, concrete things to try, in plain language a \
+swimmer can act on in the water (no metric talk).
+
+Keep the two layers consistent with each other and with the metrics.`;
 
 // Language addendum. The fact table and metric names stay as given; only the
 // prose Claude writes changes language. Mirror this in narrate.py.
 const LANG_INSTRUCTION = {
   he:
-    "\n\nWrite ALL prose you produce — the summary, every correction \"point\", " +
-    "and every drill \"name\" and \"why\" — in natural, coach-facing Hebrew. " +
-    "Keep the grounding \"metric\" strings and all numbers, units and symbols " +
-    "(e.g. Δpitch, °, the gate value) exactly as in the fact table. Pick drills " +
-    "from the English menu but translate the chosen name into Hebrew.",
+    "\n\nWrite ALL prose you produce in natural Hebrew — both layers: the " +
+    "headline, swimmer_summary and swimmer_actions (plain, warm, everyday " +
+    "Hebrew for a swimmer), and the coach summary, every correction \"point\", " +
+    "and every drill \"name\" and \"why\". Keep the grounding \"metric\" strings " +
+    "and all numbers, units and symbols (e.g. Δpitch, °, the gate value) exactly " +
+    "as in the fact table. Pick drills from the English menu but translate the " +
+    "chosen name into Hebrew.",
 };
 
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
+    headline: { type: "string" },
+    swimmer_summary: { type: "string" },
+    swimmer_actions: { type: "array", items: { type: "string" } },
     summary: { type: "string" },
     corrections: {
       type: "array",
@@ -98,7 +117,8 @@ const SCHEMA = {
       },
     },
   },
-  required: ["summary", "corrections", "drills"],
+  required: ["headline", "swimmer_summary", "swimmer_actions",
+             "summary", "corrections", "drills"],
 };
 
 /** Render the payload's metrics as a compact fact table — port of narrate._fact_table. */

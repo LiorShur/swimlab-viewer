@@ -170,6 +170,25 @@
     transition:opacity .2s,transform .2s;pointer-events:none;z-index:20}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.err{border-color:color-mix(in srgb,var(--crit) 50%,var(--line))}
+  /* Swimmer card — the plain, summary-first phase. */
+  .card{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 9%,var(--panel)),var(--panel))}
+  .card-grid{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .card-figure{flex:0 0 auto;width:190px;max-width:42vw}
+  .card-figure svg{width:100%;height:auto}
+  .card-body{flex:1 1 340px;min-width:260px}
+  .card-eyebrow-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .card-headline{font-size:clamp(20px,2.9vw,27px);letter-spacing:-.02em;margin:6px 0 10px;font-weight:680}
+  .card-summary{font-size:15px;color:var(--muted);margin:0 0 16px;line-height:1.6}
+  .card-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:620px){.card-cols{grid-template-columns:1fr}}
+  .card-sub{font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+  .card-actions{margin-top:0}
+  .card-actions li::before{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+  .card-cdrills{margin-top:0}
+  .detail-toggle{margin-top:20px;width:100%;justify-content:center;font-size:13.5px;
+    background:var(--panel-2);border-style:dashed}
+  #detail[hidden]{display:none}
+
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
   /* RTL (Hebrew) overrides — flip a few physical properties; keep numeric/code
@@ -218,6 +237,36 @@
     </div>
   </header>
 
+  <section class="panel card" id="swimmerCard">
+    <div class="card-grid">
+      <div class="card-figure">
+        <svg id="cardHead" viewBox="0 0 240 190" aria-hidden="true"></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-eyebrow-row">
+          <div class="eyebrow" data-i18n="card.eyebrow">your breathing</div>
+          <span class="hint" id="cardHint">—</span>
+        </div>
+        <h2 class="card-headline" id="cardHeadline">—</h2>
+        <p class="card-summary" id="cardSummary">—</p>
+        <div class="card-cols">
+          <div>
+            <div class="card-sub" data-i18n="card.work">What to work on</div>
+            <ul class="pts card-actions" id="cardActions"></ul>
+          </div>
+          <div>
+            <div class="card-sub" data-i18n="card.drills">Try these drills</div>
+            <ul class="drills card-cdrills" id="cardDrills"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn detail-toggle" id="detailToggle" aria-expanded="false" aria-controls="detail">
+      <span id="detailToggleTxt">See the full analysis</span> <span id="detailToggleIcon">▾</span>
+    </button>
+  </section>
+
+  <div id="detail" hidden>
   <section class="kpis" id="kpis"></section>
 
   <section class="panel">
@@ -295,6 +344,7 @@
     </div>
     <div class="disc" data-i18n-html="disc.metrics">Δpitch = peak pitch in the breath window minus the median over the preceding non‑breath cycle. Excluded breaths (within 4 s of a push‑off or 2 s of trial end) are kept and marked, never dropped silently.</div>
   </section>
+  </div><!-- /#detail -->
 
   <footer>
     <div data-i18n-html="footer1"><b>swimlab</b> — offline analysis of a head‑mounted IMU (Movella DOT, occipital mount, 120 Hz). Angles are gravity‑referenced relative to the T0b prone calibration pose; yaw and magnetometer are unusable in pool halls and are never used.</div>
@@ -346,6 +396,8 @@
       "disc.heads":`The heads animate from the recorded per‑frame pitch/roll — press play to watch the movement, or <b>Loop breath</b> to repeat one breath cycle. The target pose (rotate to air, minimal lift) encodes the study's hypothesis about efficient breathing; it is a reference for this demo, <b>not</b> a validated optimum.`,
       "h.summary":"Summary","hint.autogen":"auto‑generated","hint.illustrative":"illustrative",
       "hint.aigen":m=>`AI‑generated · ${m}`,"hint.asking":"asking Claude…",
+      "card.eyebrow":"your breathing","card.work":"What to work on","card.drills":"Try these drills",
+      "card.showDetail":"See the full analysis","card.hideDetail":"Hide the full analysis",
       "h.corrections":"Points for correction","h.drills":"Recommended drills","h.perbreath":"Per‑breath metrics",
       "th.breath":"Breath (t, s)","th.side":"Side","th.dpitch":"Δpitch °","th.peakroll":"peak roll °","th.rollpitch":"roll:pitch","th.duration":"duration s",
       "disc.metrics":`Δpitch = peak pitch in the breath window minus the median over the preceding non‑breath cycle. Excluded breaths (within 4 s of a push‑off or 2 s of trial end) are kept and marked, never dropped silently.`,
@@ -390,6 +442,8 @@
       "disc.heads":`הראשים מונפשים מתוך ההטיה/הגלגול שנרשמו בכל פריים — לחצו הפעלה כדי לצפות בתנועה, או <b>לולאת נשימה</b> כדי לחזור על מחזור נשימה אחד. תנוחת היעד (סיבוב אל האוויר, הרמה מזערית) מגלמת את השערת המחקר לגבי נשימה יעילה; זו התייחסות להדגמה בלבד, <b>לא</b> אופטימום מאומת.`,
       "h.summary":"סיכום","hint.autogen":"נוצר אוטומטית","hint.illustrative":"להמחשה",
       "hint.aigen":m=>`נוצר ב-AI · ${m}`,"hint.asking":"שולח ל-Claude…",
+      "card.eyebrow":"הנשימה שלך","card.work":"מה לשפר","card.drills":"תרגילים לנסות",
+      "card.showDetail":"הצג את הניתוח המלא","card.hideDetail":"הסתר את הניתוח המלא",
       "h.corrections":"נקודות לתיקון","h.drills":"תרגילים מומלצים","h.perbreath":"מדדים לכל נשימה",
       "th.breath":"נשימה (t, ש')","th.side":"צד","th.dpitch":"Δהטיה °","th.peakroll":"שיא גלגול °","th.rollpitch":"גלגול:הטיה","th.duration":"משך ש'",
       "disc.metrics":`Δהטיה = שיא ההטיה בחלון הנשימה פחות החציון על פני מחזור הלא־נשימה שקדם לו. נשימות שהוחרגו (בתוך 4 ש' מדחיפה מהקיר או 2 ש' מסוף הניסוי) נשמרות ומסומנות, ולעולם לא מושמטות בשקט.`,
@@ -433,6 +487,7 @@
     document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title = t(el.getAttribute("data-i18n-title")); });
     document.querySelectorAll("[data-i18n-aria]").forEach(el=>{ el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
     const lb = $("langBtn"); if(lb) lb.textContent = "🌐 " + t("lang.switch");
+    paintToggle();
   }
 
   const picker = $("sessionPicker");
@@ -886,6 +941,47 @@
     return {corrections:corr, drills:uniq.slice(0,5)};
   }
 
+  // Plain-language swimmer card (phase 1). Rule-based fallback used when the
+  // current language has no AI narrative; mirrors the AI's headline / summary /
+  // actions in everyday, jargon-free wording. Drills reuse the top 2 detailed.
+  function plainFindings(p){
+    const s=p.summary, he=LANG==="he";
+    const lifter=p.detected_pattern==="Lifter";
+    const asymBad=Math.abs(s.asymmetry_index)>=0.15;
+    const asymSide=s.asymmetry_index>0?"left":"right";
+    const asymSideT=he?(asymSide==="left"?"שמאל":"ימין"):asymSide;
+    const variable=s.pitch_variability>=6;
+    const lowRoll=s.mean_peak_roll_breath<35;
+    let headline, summary; const actions=[];
+
+    if(lifter){
+      headline = he ? "אתה מרים את הראש כדי לנשום" : "You lift your head to breathe";
+      summary = he
+        ? "כשאתה לוקח אוויר הראש עולה במקום להסתובב הצידה. ההרמה מפילה את הירכיים ומאטה אותך — סיבוב לנשימה שומר עליך שטוח וארוך."
+        : "When you go for air your head comes up instead of turning to the side. Lifting drops your hips and slows you down — turning to breathe keeps you flat and long.";
+      actions.push(he ? "סובב את הראש הצידה לאוויר — השאר את המשקף התחתון במים."
+                      : "Turn your head to the side for air — keep your lower goggle in the water.");
+      actions.push(he ? "נשוף באופן קבוע מתחת למים כדי לא להתנשף ולהרים מאוחר."
+                      : "Breathe out steadily underwater so you're not gasping and lifting late.");
+      if(lowRoll) actions.push(he ? "גלגל את כל הגוף לכיוון האוויר, לא רק את הצוואר."
+                                  : "Roll your whole body toward the air, not just your neck.");
+    } else {
+      headline = he ? "הנשימה שלך נראית יעילה" : "Your breathing looks efficient";
+      summary = he
+        ? "אתה מסתובב לאוויר עם הגוף ושומר על ראש נמוך — זה הדפוס של שחיינים טובים. העיקר עכשיו הוא לשמור עליו כשאתה מתעייף."
+        : "You turn to the air with your body and keep your head low — that's the pattern good swimmers use. The main job now is holding it when you get tired.";
+      actions.push(he ? "שמור על ראש נמוך ורגוע גם בסוף סט קשה."
+                      : "Keep the low, relaxed head position even late in a hard set.");
+    }
+    if(asymBad) actions.push(he ? `אזן את צד ${asymSideT} — נסה לנשום כל 3 תנועות.`
+                                : `Even out your ${asymSide} side — try breathing every 3 strokes.`);
+    if(variable && actions.length<3) actions.push(he ? "כוון לאותה נשימה חלקה בכל פעם, לא נשימה חפוזה."
+                                                    : "Aim for the same smooth breath every time, not a rushed one.");
+
+    const drills = buildFindings(p).drills.slice(0,2);
+    return { headline, summary, actions: actions.slice(0,3), drills };
+  }
+
   function render(p){
     CUR=p; computeChart(p); seedNar(p);
     $("swimmer").textContent=t("swimmerName", p.swimmer_id||activeKey);
@@ -948,8 +1044,39 @@
       <td>${fmt(b.d_pitch_breath,1)}</td><td>${fmt(b.peak_roll_breath,1)}</td>
       <td>${b.roll_pitch_ratio==null?"—":fmt(b.roll_pitch_ratio,2)}</td><td>${fmt(b.breath_duration,2)}</td></tr>`).join("");
 
+    // ---- Phase 1: plain swimmer card. Prefer the AI's plain layer for the
+    // current language; else the translated rule-based plain fallback.
+    const plain = (nar && nar.headline)
+      ? { headline:nar.headline, summary:nar.swimmer_summary||"",
+          actions:nar.swimmer_actions||[],
+          drills:(nar.drills||[]).slice(0,2).map(d=>({n:d.name,w:d.why})) }
+      : plainFindings(p);
+    $("cardHead").innerHTML=headSideSVG(o.apex_pitch,r.apex_pitch);
+    $("cardHint").textContent=(nar&&nar.headline)?t("hint.aigen", esc(nar.model||"Claude")):t("hint.autogen");
+    $("cardHeadline").textContent=plain.headline;
+    $("cardSummary").textContent=plain.summary;
+    $("cardActions").innerHTML=(plain.actions||[]).map(a=>`<li>${esc(a)}</li>`).join("");
+    $("cardDrills").innerHTML=(plain.drills||[]).map(d=>
+      `<li><b>${esc(d.n)}</b>${d.w?`<div class="drill-why">${esc(d.w)}</div>`:""}</li>`).join("");
+
     resize();
   }
+
+  // Phase 1 ⇄ full spread. Always starts collapsed (swimmers land on the card);
+  // toggling reveals the detailed sections and lays out the chart on first open.
+  let detailOpen = false;
+  function paintToggle(){
+    $("detailToggleTxt").textContent = t(detailOpen?"card.hideDetail":"card.showDetail");
+    $("detailToggleIcon").textContent = detailOpen?"▴":"▾";
+    $("detailToggle").setAttribute("aria-expanded", detailOpen?"true":"false");
+  }
+  function setDetail(open){
+    detailOpen = open;
+    $("detail").hidden = !open;
+    paintToggle();
+    if(open) requestAnimationFrame(resize);   // chart has real width only once shown
+  }
+  $("detailToggle").addEventListener("click",()=>setDetail(!detailOpen));
 
   $("themeBtn").addEventListener("click",()=>{
     const cur=document.documentElement.getAttribute("data-theme");
