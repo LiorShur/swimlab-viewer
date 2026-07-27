@@ -27361,9 +27361,13 @@
     ["sideKick",["side-kick","side kick","kick on your side","על הצד"]],
     ["maintain",["low-head","low head","steady-state","steady state","neutral","ראש נמוך","מצב יציב"]],
   ];
+  // Normalise so any dash variant (ASCII "-", non-breaking "‑", en/em dashes) and
+  // hyphen-vs-space all match — the rule-based names use a non-breaking hyphen
+  // (e.g. "Single‑arm"), which otherwise wouldn't match an ASCII "single-arm" key.
+  const norm = str => (str||"").toLowerCase().replace(/[-‐-―−]/g," ").replace(/\s+/g," ").trim();
   function drillKeyFor(name){
-    const s=(name||"").toLowerCase();
-    for(const [key,kws] of DRILL_MATCH){ if(kws.some(k=>s.includes(k.toLowerCase()))) return key; }
+    const s=norm(name);
+    for(const [key,kws] of DRILL_MATCH){ if(kws.some(k=>s.includes(norm(k)))) return key; }
     return null;
   }
   // Build a drill <li> with its name, why, and (when matched) a video button + how-to.
