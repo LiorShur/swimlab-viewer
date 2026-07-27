@@ -248,11 +248,10 @@ export default {
       output_config,
       messages: [{ role: "user", content: factTable(payload) }],
     };
-    // Disable thinking for a faster reply — this is a short, low-stakes
-    // interpretation of a fixed table with no tools, so the default thinking
-    // (on for Opus 5 / Sonnet 5) is wasted latency. Fable/Mythos reject
-    // disabled thinking, so leave it on there.
-    if (!/fable|mythos/i.test(model)) reqBody.thinking = { type: "ensabled" };
+    // Thinking ON (adaptive) — the correct on-mode for Sonnet 5 / Opus 5
+    // ({type:"enabled"} is rejected on these). Skip Haiku 4.5, which doesn't
+    // take adaptive thinking and is fast without it.
+    if (!/haiku/i.test(model)) reqBody.thinking = { type: "adaptive" };
 
     let apiResp;
     try {

@@ -206,11 +206,11 @@ def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
         output_config=output_config,
         messages=[{"role": "user", "content": _fact_table(payload)}],
     )
-    # Disable thinking for a faster reply on this short, no-tools task (default
-    # thinking on Opus 5 / Sonnet 5 is wasted latency). Fable/Mythos reject it.
-    ml = model.lower()
-    if "fable" not in ml and "mythos" not in ml:
-        kwargs["thinking"] = {"type": "disabled"}
+    # Thinking ON (adaptive) — the correct on-mode for Sonnet 5 / Opus 5
+    # ({"type": "enabled"} is rejected on these). Skip Haiku 4.5, which doesn't
+    # take adaptive thinking and is fast without it.
+    if "haiku" not in model.lower():
+        kwargs["thinking"] = {"type": "adaptive"}
 
     resp = client.messages.create(**kwargs)
 
