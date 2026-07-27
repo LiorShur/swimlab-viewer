@@ -61,6 +61,8 @@
     background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
     background-position:calc(100% - 17px) 55%,calc(100% - 12px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:32px}
   select:hover,.btn:hover{border-color:var(--accent)}
+  select:disabled,.btn:disabled{opacity:.5;cursor:default}
+  select:disabled:hover,.btn:disabled:hover{border-color:var(--line)}
   select:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .btn{display:inline-flex;gap:7px;align-items:center;color:var(--muted)}
   .btn:hover{color:var(--ink)}
@@ -26909,6 +26911,14 @@
     btn.textContent = t("btn.narrate");
     btn.title = t("btn.narrate.t");
   }
+  // While a ~30 s narration is in flight, lock the two controls that would swap
+  // the active session out from under it (the swimmer picker and Import). This
+  // avoids a jump-back on completion and keeps the picker in sync with the view.
+  function setNavBusy(busy){
+    const pk=$("sessionPicker"), ib=$("importBtn");
+    if(pk) pk.disabled=busy;
+    if(ib) ib.disabled=busy;
+  }
   async function narrateLive(){
     if(narrating) return;                 // guard: no overlapping / double-fire requests
     const p = SESSIONS[activeKey];
@@ -26924,7 +26934,7 @@
       if(!url) return;
       url = url.trim(); saveCfg("swimlab.narrateUrl", url);
     }
-    narrating = true; paintNarrateBtn();
+    narrating = true; setNavBusy(true); paintNarrateBtn();
     $("summaryHint").textContent = t("hint.asking");
     try{
       const headers = {"Content-Type":"application/json"};
@@ -26935,12 +26945,14 @@
       if(!resp.ok || data.error) throw new Error(data.error || ("HTTP "+resp.status));
       if(!data.summary || !data.corrections || !data.drills) throw new Error("unexpected response shape");
       data.lang = data.lang || LANG;
-      p._nar[LANG] = data;              // store in the current-language slot
-      narrating = false; render(p);     // render repaints the button via paintNarrateBtn()
+      p._nar[data.lang] = data;         // store under the language the text came back in
       toast(t("toast.narrated", data.model||"Claude"));
     }catch(e){
-      narrating = false; render(p);     // keep any prior AI text; restore hints + button
       toast(t("toast.narrateFail", e.message), true);
+    }finally{
+      // picker was locked, so activeKey is still this session — render it back,
+      // keeping any prior text on failure and repainting the button state.
+      narrating = false; setNavBusy(false); render(SESSIONS[activeKey]);
     }
   }
   $("narrateBtn").addEventListener("click", narrateLive);
