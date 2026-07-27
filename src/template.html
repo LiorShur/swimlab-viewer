@@ -199,6 +199,35 @@
     background:var(--panel-2);border-style:dashed}
   #detail[hidden]{display:none}
 
+  /* per-drill video button + expandable how-to */
+  .drill-actions{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .drill-act{font:600 11.5px/1 var(--sans);color:var(--muted);background:var(--panel);
+    border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer;
+    display:inline-flex;gap:5px;align-items:center}
+  .drill-act:hover{color:var(--ink);border-color:var(--accent)}
+  .drill-act.vid{color:var(--accent)}
+  .drill-howto{margin-top:9px;font-size:12.5px;color:var(--muted);line-height:1.65;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  .drill-howto[hidden]{display:none}
+
+  /* video modal */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal[hidden]{display:none}
+  .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.66)}
+  .modal-box{position:relative;width:min(900px,100%);max-height:calc(100vh - 40px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 24px 70px rgba(0,0,0,.5);display:flex;flex-direction:column}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:11px 14px;border-bottom:1px solid var(--line)}
+  .modal-title{font-weight:640;font-size:14px}
+  .modal-x{background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--muted);
+    cursor:pointer;font-size:14px;line-height:1;padding:6px 10px}
+  .modal-x:hover{color:var(--ink);border-color:var(--accent)}
+  .modal-frame{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+  .modal-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .modal-yt{display:inline-block;padding:9px 14px;font-size:12.5px;color:var(--accent);text-decoration:none}
+  .modal-yt:hover{text-decoration:underline}
+
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
   /* RTL (Hebrew) overrides — flip a few physical properties; keep numeric/code
@@ -367,6 +396,19 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<div class="modal" id="videoModal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="videoTitle">
+    <div class="modal-head">
+      <span class="modal-title" id="videoTitle">—</span>
+      <button class="modal-x" id="videoClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-frame"><iframe id="videoFrame" title="drill demonstration video"
+      allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <a class="modal-yt" id="videoOpen" href="#" target="_blank" rel="noopener">Open on YouTube ↗</a>
+  </div>
+</div>
+
 <script id="data" type="application/json">__DATA__</script>
 <script>
 (function(){
@@ -412,6 +454,7 @@
       "hint.aigen":m=>`AI‑generated · ${m}`,"hint.asking":"asking Claude…",
       "card.eyebrow":"your breathing","card.work":"What to work on","card.drills":"Try these drills",
       "card.showDetail":"See the full analysis","card.hideDetail":"Hide the full analysis",
+      "drill.watch":"Watch","drill.explain":"How to","drill.openYt":"Open on YouTube ↗","modal.close":"Close",
       "h.corrections":"Points for correction","h.drills":"Recommended drills","h.perbreath":"Per‑breath metrics",
       "th.breath":"Breath (t, s)","th.side":"Side","th.dpitch":"Δpitch °","th.peakroll":"peak roll °","th.rollpitch":"roll:pitch","th.duration":"duration s",
       "disc.metrics":`Δpitch = peak pitch in the breath window minus the median over the preceding non‑breath cycle. Excluded breaths (within 4 s of a push‑off or 2 s of trial end) are kept and marked, never dropped silently.`,
@@ -459,6 +502,7 @@
       "hint.aigen":m=>`נוצר ב-AI · ${m}`,"hint.asking":"שולח ל-Claude…",
       "card.eyebrow":"הנשימה שלך","card.work":"מה לשפר","card.drills":"תרגילים לנסות",
       "card.showDetail":"הצג את הניתוח המלא","card.hideDetail":"הסתר את הניתוח המלא",
+      "drill.watch":"צפייה","drill.explain":"איך לבצע","drill.openYt":"פתח ב-YouTube ↗","modal.close":"סגירה",
       "h.corrections":"נקודות לתיקון","h.drills":"תרגילים מומלצים","h.perbreath":"מדדים לכל נשימה",
       "th.breath":"נשימה (t, ש')","th.side":"צד","th.dpitch":"Δהטיה °","th.peakroll":"שיא גלגול °","th.rollpitch":"גלגול:הטיה","th.duration":"משך ש'",
       "disc.metrics":`Δהטיה = שיא ההטיה בחלון הנשימה פחות החציון על פני מחזור הלא־נשימה שקדם לו. נשימות שהוחרגו (בתוך 4 ש' מדחיפה מהקיר או 2 ש' מסוף הניסוי) נשמרות ומסומנות, ולעולם לא מושמטות בשקט.`,
@@ -959,6 +1003,65 @@
   };
   const dl = key => ({ n: DRILL[key].n[LANG] || DRILL[key].n.en, w: DRILL[key].w[LANG] || DRILL[key].w.en });
 
+  // Per-drill media: a demo video (YouTube id) + a short how-to (EN/HE). Keyed by
+  // the 8 canonical drills. TRIAL PICKS — swap any id for a video you prefer; if a
+  // channel blocks embedding, the modal's "Open on YouTube" link still works.
+  const DRILL_MEDIA = {
+    singleArm:{yt:"qp5wUg5obpM", howto:{
+      en:"Swim freestyle using one arm only; the other stays extended in front (or resting at your side). Focus on rolling your body to breathe on the working side rather than lifting your head. Do a length on each arm — fins help you keep momentum.",
+      he:"שחה חתירה עם יד אחת בלבד; השנייה מושטת קדימה (או צמודה לגוף). התמקד בגלגול הגוף כדי לנשום בצד הפעיל במקום להרים את הראש. בצע אורך בריכה לכל יד — סנפירים עוזרים לשמור על תנופה."}},
+    switch:{yt:"1rKCME8HfJY", howto:{
+      en:"Push off on your side, one arm extended, the other at your side, head down. Take 6 kicks in that balanced position, then one stroke and switch to the other side for 6 more. The pause on each side grooves rotation and timing.",
+      he:"דחוף מהקיר על הצד, יד אחת מושטת והשנייה צמודה לגוף, הראש למטה. בצע 6 בעיטות בתנוחה מאוזנת זו, ואז תנועת חתירה אחת ומעבר לצד השני ל-6 נוספות. ההשהיה בכל צד מחריצה את הסיבוב והתזמון."}},
+    oneGoggle:{yt:"kno0orQgy2Q", howto:{
+      en:"As you breathe, rotate just enough to clear your mouth while keeping the lower goggle in the water. It caps how far you turn and stops the head from lifting. Try a length breathing every 3, checking one goggle stays under each breath.",
+      he:"בזמן הנשימה, סובב רק עד שהפה יוצא מהמים, תוך שמירה על המשקף התחתון בתוך המים. זה מגביל את מידת הסיבוב ומונע הרמת ראש. נסה אורך בריכה בנשימה כל 3, וודא שמשקף אחד נשאר מתחת למים בכל נשימה."}},
+    exhale:{yt:"Gq2asyrI0MI", howto:{
+      en:"Breathe out steadily through nose and mouth the whole time your face is in the water, so you only inhale when you turn to air. A continuous stream of bubbles removes the rushed, late breath and the head-lift that comes with it.",
+      he:"נשוף באופן רציף דרך האף והפה כל עוד הפנים במים, כך שתשאף רק כשאתה פונה לאוויר. זרם בועות קבוע מבטל את הנשימה החפוזה והמאוחרת ואת הרמת הראש שנלווית אליה."}},
+    bilateral:{yt:"QImNLwVYEmc", howto:{
+      en:"Breathe every 3 strokes so you alternate sides. It evens out a strong/weak side and builds a symmetric stroke. If every-3 feels breathless at first, alternate by length (breathe left one length, right the next) and build up.",
+      he:"נשום כל 3 תנועות כך שאתה מתחלף בין הצדדים. זה מאזן בין צד חזק לחלש ובונה חתירה סימטרית. אם כל-3 מקשה בהתחלה, התחלף לפי אורך בריכה (שמאלה אורך אחד, ימינה בהמשך) והגדל בהדרגה."}},
+    tempo:{yt:"y7DO4kVwtqk", howto:{
+      en:"Set a tempo trainer (or count a steady beat) and take one breath on a fixed, repeatable rhythm. Locking the timing removes stroke-to-stroke variation so every breath looks the same.",
+      he:"כוון שעון קצב (או ספור פעימה קבועה) וקח נשימה בקצב קבוע וחוזר. נעילת התזמון מבטלת שונות בין תנועה לתנועה כך שכל נשימה נראית זהה."}},
+    sideKick:{yt:"1VQVfo0icr0", howto:{
+      en:"Kick on your side, lower arm extended, top arm resting along your body, head down and cheek on the water. Hold a steady kick and balance, rotating just to breathe. Builds the body roll that lets the breath come from rotation, not a lift.",
+      he:"בעט על הצד, היד התחתונה מושטת, העליונה צמודה לגוף, הראש למטה והלחי על המים. שמור על בעיטה יציבה ואיזון, וסובב רק כדי לנשום. בונה את גלגול הגוף שמאפשר לנשימה לבוא מסיבוב ולא מהרמה."}},
+    maintain:{yt:"uoAhTVn3v5I", howto:{
+      en:"Swim relaxed with your eyes down and slightly forward and the waterline around the crown of your head — a neutral, low head position. Hold it steady, especially late in a set as you tire, so the head doesn't creep up.",
+      he:"שחה רגוע כשהמבט למטה ומעט קדימה וקו המים סביב קודקוד הראש — תנוחת ראש ניטרלית ונמוכה. שמור עליה יציבה, במיוחד בסוף סט כשאתה מתעייף, כדי שהראש לא יזחל כלפי מעלה."}},
+  };
+  // Map a displayed drill name (rule-based or AI, English or Hebrew) to a canonical
+  // drill via keywords — Claude picks from the fixed menu, so names stay recognisable.
+  const DRILL_MATCH = [
+    ["singleArm",["single-arm","single arm","one-arm","one arm","יד אחת"]],
+    ["switch",["6-kick","6 kick","six kick","3-stroke","switch","בעיטות","מעבר"]],
+    ["oneGoggle",["goggle","משקף"]],
+    ["exhale",["exhale","bubble","נשיפה","נשוף"]],
+    ["bilateral",["bilateral","every 3","דו־צדד","דו-צדד","דו צדד","כל 3"]],
+    ["tempo",["tempo","metronome","קצב","שעון"]],
+    ["sideKick",["side-kick","side kick","kick on your side","על הצד"]],
+    ["maintain",["low-head","low head","steady-state","steady state","neutral","ראש נמוך","מצב יציב"]],
+  ];
+  function drillKeyFor(name){
+    const s=(name||"").toLowerCase();
+    for(const [key,kws] of DRILL_MATCH){ if(kws.some(k=>s.includes(k.toLowerCase()))) return key; }
+    return null;
+  }
+  // Build a drill <li> with its name, why, and (when matched) a video button + how-to.
+  function drillItemHTML(name, why){
+    const media = DRILL_MEDIA[drillKeyFor(name)];
+    const howto = media && media.howto && (media.howto[LANG] || media.howto.en);
+    let acts="";
+    if(media && media.yt) acts += `<button class="drill-act vid" type="button" data-yt="${esc(media.yt)}" data-title="${esc(name)}">▶ ${esc(t("drill.watch"))}</button>`;
+    if(howto) acts += `<button class="drill-act exp" type="button" aria-expanded="false"><span class="ic">▾</span> ${esc(t("drill.explain"))}</button>`;
+    return `<li><b>${esc(name)}</b>${why?`<div class="drill-why">${esc(why)}</div>`:""}`
+      + (acts?`<div class="drill-actions">${acts}</div>`:"")
+      + (howto?`<div class="drill-howto" hidden>${esc(howto)}</div>`:"")
+      + `</li>`;
+  }
+
   function buildFindings(p){
     const s=p.summary, he=LANG==="he";
     const lifter=p.detected_pattern==="Lifter";
@@ -1101,14 +1204,13 @@
       $("summaryTxt").innerHTML=esc(nar.summary);
       $("corrections").innerHTML=(nar.corrections||[]).map(c=>
         `<li><div class="pt-col"><span>${esc(c.point)}</span>${c.metric?`<span class="cite">${esc(c.metric)}</span>`:""}</div></li>`).join("");
-      $("drills").innerHTML=(nar.drills||[]).map(d=>
-        `<li><b>${esc(d.name)}</b><div class="drill-why">${esc(d.why)}</div></li>`).join("");
+      $("drills").innerHTML=(nar.drills||[]).map(d=>drillItemHTML(d.name, d.why)).join("");
     } else {
       $("summaryHint").textContent=t("hint.autogen"); $("corrHint").textContent=t("hint.illustrative"); $("drillHint").textContent=t("hint.illustrative");
       $("summaryTxt").innerHTML=summaryText(p);
       const F=buildFindings(p);
       $("corrections").innerHTML=F.corrections.map(c=>`<li>${esc(c)}</li>`).join("");
-      $("drills").innerHTML=F.drills.map(d=>`<li><b>${esc(d.n)}</b><div class="drill-why">${esc(d.w)}</div></li>`).join("");
+      $("drills").innerHTML=F.drills.map(d=>drillItemHTML(d.n, d.w)).join("");
     }
 
     $("tblHint").textContent=t("tblHint", p.breaths.length, s.n_excluded);
@@ -1130,8 +1232,7 @@
     $("cardHeadline").textContent=plain.headline;
     $("cardSummary").textContent=plain.summary;
     $("cardActions").innerHTML=(plain.actions||[]).map(a=>`<li>${esc(a)}</li>`).join("");
-    $("cardDrills").innerHTML=(plain.drills||[]).map(d=>
-      `<li><b>${esc(d.n)}</b>${d.w?`<div class="drill-why">${esc(d.w)}</div>`:""}</li>`).join("");
+    $("cardDrills").innerHTML=(plain.drills||[]).map(d=>drillItemHTML(d.n, d.w)).join("");
 
     paintNarrateBtn();
     resize();
@@ -1166,6 +1267,44 @@
     try{ localStorage.setItem("swimlab.lang", LANG); }catch(e){}
     applyStatic();
     if(CUR) render(CUR);
+  });
+
+  // --- Drill video modal + how-to toggles ---------------------------------
+  const vModal=$("videoModal"), vFrame=$("videoFrame");
+  function openVideo(yt, title){
+    $("videoTitle").textContent = title || "";
+    $("videoOpen").href = "https://www.youtube.com/watch?v="+yt;
+    $("videoOpen").textContent = t("drill.openYt");
+    $("videoClose").setAttribute("aria-label", t("modal.close"));
+    vFrame.src = "https://www.youtube.com/embed/"+encodeURIComponent(yt)+"?rel=0&autoplay=1&playsinline=1";
+    vModal.hidden=false;
+    document.addEventListener("keydown", onModalKey);
+    $("videoClose").focus();
+  }
+  function closeVideo(){
+    if(vModal.hidden) return;
+    vModal.hidden=true; vFrame.src="about:blank"; // unload the player to stop playback
+    document.removeEventListener("keydown", onModalKey);
+  }
+  function onModalKey(e){ if(e.key==="Escape") closeVideo(); }
+  $("videoClose").addEventListener("click", closeVideo);
+  // tap/click outside the box (backdrop or the padding area) closes
+  vModal.addEventListener("click", e=>{ if(e.target===vModal || e.target.hasAttribute("data-close")) closeVideo(); });
+
+  // Delegated: drill "Watch" opens the modal; "How to" toggles the explanation.
+  // Delegation survives the innerHTML re-renders in render().
+  document.addEventListener("click", e=>{
+    const vb=e.target.closest(".drill-act.vid");
+    if(vb){ openVideo(vb.getAttribute("data-yt"), vb.getAttribute("data-title")); return; }
+    const eb=e.target.closest(".drill-act.exp");
+    if(eb){
+      const box=eb.closest("li") && eb.closest("li").querySelector(".drill-howto");
+      if(!box) return;
+      const willOpen=box.hasAttribute("hidden");
+      if(willOpen) box.removeAttribute("hidden"); else box.setAttribute("hidden","");
+      eb.setAttribute("aria-expanded", willOpen?"true":"false");
+      const ic=eb.querySelector(".ic"); if(ic) ic.textContent = willOpen?"▴":"▾";
+    }
   });
 
   fillPicker();
