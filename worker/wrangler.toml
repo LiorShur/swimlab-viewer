@@ -12,7 +12,7 @@ ALLOWED_ORIGIN = "https://liorshur.github.io"
 # seconds vs ~30s on Opus. claude-haiku-4-5 = fastest/cheapest,
 # claude-sonnet-5 = near-Opus quality + faster, claude-opus-5 = best/slowest.
 # 
-NARRATE_MODEL = "claude-haiku-4-5"
+NARRATE_MODEL = "claude-sonnet-5"
 
 # Secrets are NOT stored here. Set them once with wrangler:
 #   npx wrangler secret put ANTHROPIC_API_KEY
