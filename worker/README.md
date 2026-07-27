@@ -51,6 +51,26 @@ Then click **✨ Narrate live** — it narrates whichever swimmer is selected (o
 session you just imported) and swaps in Claude's text under an "AI-generated"
 badge.
 
+## Speed (which model)
+
+A narration takes ~30s on `claude-opus-5` (the default). The model is the main
+lever — this task (interpret a fixed metric table into a few short sentences)
+doesn't need Opus. Set `NARRATE_MODEL` in `wrangler.toml` and redeploy:
+
+| Model | Speed | Cost (in/out per MTok) | Notes |
+|---|---|---|---|
+| `claude-haiku-4-5` | fastest (~a few s) | $1 / $5 | plenty for this bounded task |
+| `claude-sonnet-5` | fast | $3 / $15 | near-Opus quality — good default |
+| `claude-opus-5` | slowest (~30s) | $5 / $25 | best quality (current default) |
+
+```bash
+cd worker   # edit wrangler.toml → NARRATE_MODEL = "claude-sonnet-5"
+npx wrangler deploy
+```
+
+The Worker sends `output_config.effort` for every model except Haiku 4.5 (which
+rejects it), so any of the above works with no code change.
+
 ## Language (English / Hebrew)
 
 The page has an EN/HE toggle (🌐). Static UI, the rule-based fallback text, and

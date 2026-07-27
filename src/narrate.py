@@ -191,12 +191,16 @@ def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
 
     client = anthropic.Anthropic(api_key=api_key)  # reads ANTHROPIC_API_KEY if None
 
+    output_config = {"format": {"type": "json_schema", "schema": _SCHEMA}}
+    # Haiku 4.5 rejects output_config.effort; every other current model accepts it.
+    if "haiku" not in model.lower():
+        output_config["effort"] = effort
+
     resp = client.messages.create(
         model=model,
         max_tokens=2000,
         system=_SYSTEM + _LANG_INSTRUCTION.get(lang, ""),
-        output_config={"format": {"type": "json_schema", "schema": _SCHEMA},
-                       "effort": effort},
+        output_config=output_config,
         messages=[{"role": "user", "content": _fact_table(payload)}],
     )
 

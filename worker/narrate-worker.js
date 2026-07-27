@@ -225,9 +225,19 @@ export default {
       return json({ error: "not a swimlab session payload" }, 400, cors);
     }
 
+    // Model is configurable via NARRATE_MODEL (wrangler var) — the main speed
+    // lever. Faster/cheaper models finish this bounded task in a few seconds:
+    //   claude-haiku-4-5  — fastest, cheapest
+    //   claude-sonnet-5   — near-Opus quality, faster than Opus
+    //   claude-opus-5     — highest quality, slowest (default)
     const model = env.NARRATE_MODEL || "claude-opus-5";
     const lang = typeof payload.lang === "string" ? payload.lang : "en";
     const system = SYSTEM + (LANG_INSTRUCTION[lang] || "");
+
+    const output_config = { format: { type: "json_schema", schema: SCHEMA } };
+    // Haiku 4.5 rejects output_config.effort; every other current model accepts it.
+    if (!/haiku/i.test(model)) output_config.effort = "low";
+
     let apiResp;
     try {
       apiResp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -241,10 +251,7 @@ export default {
           model,
           max_tokens: 2000,
           system,
-          output_config: {
-            format: { type: "json_schema", schema: SCHEMA },
-            effort: "low",
-          },
+          output_config,
           messages: [{ role: "user", content: factTable(payload) }],
         }),
       });

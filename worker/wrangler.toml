@@ -8,7 +8,10 @@ compatibility_date = "2026-01-01"
 # Lock CORS to your GitHub Pages origin. Change to your username's Pages URL.
 # Use "*" only for local testing — a public "*" lets any website call your key.
 ALLOWED_ORIGIN = "https://liorshur.github.io"
-# NARRATE_MODEL = "claude-opus-5"   # optional override
+# Model = the main speed lever. Uncomment one; faster models finish in a few
+# seconds vs ~30s on Opus. claude-haiku-4-5 = fastest/cheapest,
+# claude-sonnet-5 = near-Opus quality + faster, claude-opus-5 = best/slowest.
+# NARRATE_MODEL = "claude-sonnet-5"
 
 # Secrets are NOT stored here. Set them once with wrangler:
 #   npx wrangler secret put ANTHROPIC_API_KEY
