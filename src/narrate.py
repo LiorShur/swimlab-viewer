@@ -83,7 +83,10 @@ _LANG_INSTRUCTION = {
         "\n\nWrite ALL prose you produce in natural Hebrew — both layers: the "
         "headline, swimmer_summary and swimmer_actions (plain, warm, everyday "
         'Hebrew for a swimmer), and the coach summary, every correction "point", '
-        'and every drill "name" and "why". Keep the grounding "metric" strings '
+        'and every drill "name" and "why". Address the swimmer in the masculine '
+        "singular (Hebrew גוף שני, זכר יחיד) consistently throughout — the "
+        "swimmer's gender is unknown, so use masculine as the neutral default "
+        'and never switch to feminine forms. Keep the grounding "metric" strings '
         "and all numbers, units and symbols (e.g. Δpitch, °, the gate value) "
         "exactly as in the fact table. Pick drills from the English menu but "
         "translate the chosen name into Hebrew."
@@ -196,13 +199,20 @@ def narrate_payload(payload: dict, *, model: str = "claude-opus-5",
     if "haiku" not in model.lower():
         output_config["effort"] = effort
 
-    resp = client.messages.create(
+    kwargs = dict(
         model=model,
         max_tokens=2000,
         system=_SYSTEM + _LANG_INSTRUCTION.get(lang, ""),
         output_config=output_config,
         messages=[{"role": "user", "content": _fact_table(payload)}],
     )
+    # Disable thinking for a faster reply on this short, no-tools task (default
+    # thinking on Opus 5 / Sonnet 5 is wasted latency). Fable/Mythos reject it.
+    ml = model.lower()
+    if "fable" not in ml and "mythos" not in ml:
+        kwargs["thinking"] = {"type": "disabled"}
+
+    resp = client.messages.create(**kwargs)
 
     if resp.stop_reason == "refusal":  # guard before reading content
         raise RuntimeError(

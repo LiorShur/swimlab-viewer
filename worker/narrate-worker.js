@@ -78,10 +78,13 @@ const LANG_INSTRUCTION = {
     "\n\nWrite ALL prose you produce in natural Hebrew — both layers: the " +
     "headline, swimmer_summary and swimmer_actions (plain, warm, everyday " +
     "Hebrew for a swimmer), and the coach summary, every correction \"point\", " +
-    "and every drill \"name\" and \"why\". Keep the grounding \"metric\" strings " +
-    "and all numbers, units and symbols (e.g. Δpitch, °, the gate value) exactly " +
-    "as in the fact table. Pick drills from the English menu but translate the " +
-    "chosen name into Hebrew.",
+    "and every drill \"name\" and \"why\". Address the swimmer in the masculine " +
+    "singular (Hebrew גוף שני, זכר יחיד) consistently throughout — the swimmer's " +
+    "gender is unknown, so use masculine as the neutral default and never switch " +
+    "to feminine forms. Keep the grounding \"metric\" strings and all numbers, " +
+    "units and symbols (e.g. Δpitch, °, the gate value) exactly as in the fact " +
+    "table. Pick drills from the English menu but translate the chosen name into " +
+    "Hebrew.",
 };
 
 const SCHEMA = {
@@ -238,6 +241,19 @@ export default {
     // Haiku 4.5 rejects output_config.effort; every other current model accepts it.
     if (!/haiku/i.test(model)) output_config.effort = "low";
 
+    const reqBody = {
+      model,
+      max_tokens: 2000,
+      system,
+      output_config,
+      messages: [{ role: "user", content: factTable(payload) }],
+    };
+    // Disable thinking for a faster reply — this is a short, low-stakes
+    // interpretation of a fixed table with no tools, so the default thinking
+    // (on for Opus 5 / Sonnet 5) is wasted latency. Fable/Mythos reject
+    // disabled thinking, so leave it on there.
+    if (!/fable|mythos/i.test(model)) reqBody.thinking = { type: "disabled" };
+
     let apiResp;
     try {
       apiResp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -247,13 +263,7 @@ export default {
           "x-api-key": env.ANTHROPIC_API_KEY,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify({
-          model,
-          max_tokens: 2000,
-          system,
-          output_config,
-          messages: [{ role: "user", content: factTable(payload) }],
-        }),
+        body: JSON.stringify(reqBody),
       });
     } catch (e) {
       return json({ error: "upstream fetch failed: " + e.message }, 502, cors);
