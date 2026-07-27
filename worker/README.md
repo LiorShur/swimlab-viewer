@@ -71,6 +71,12 @@ npx wrangler deploy
 The Worker sends `output_config.effort` for every model except Haiku 4.5 (which
 rejects it), so any of the above works with no code change.
 
+**Thinking** is a second knob, independent of the model — `NARRATE_THINKING` in
+`wrangler.toml`: `"auto"` (default: on for Sonnet 5 / Opus 5, off for Haiku),
+`"on"`, or `"off"`. Thinking improves quality but adds latency, so `"off"` (e.g.
+Sonnet 5 with thinking off) is a good speed/quality middle ground. Both knobs
+are plain vars — edit `wrangler.toml`, `npx wrangler deploy`, done.
+
 ## Language (English / Hebrew)
 
 The page has an EN/HE toggle (🌐). Static UI, the rule-based fallback text, and

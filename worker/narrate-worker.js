@@ -259,10 +259,19 @@ export default {
       output_config,
       messages: [{ role: "user", content: factTable(payload) }],
     };
-    // Thinking ON (adaptive) — the correct on-mode for Sonnet 5 / Opus 5
-    // ({type:"enabled"} is rejected on these). Skip Haiku 4.5, which doesn't
-    // take adaptive thinking and is fast without it.
-    if (!/haiku/i.test(model)) reqBody.thinking = { type: "adaptive" };
+    // Thinking is controllable from wrangler.toml: NARRATE_THINKING =
+    //   "auto" (default) — adaptive on for Sonnet 5 / Opus 5, off for Haiku 4.5
+    //   "on"            — adaptive where supported (Haiku 4.5 can't; stays off)
+    //   "off"           — disabled where allowed (Fable/Mythos reject it; left on)
+    // "adaptive" is the valid on-mode for Sonnet 5 / Opus 5 ({type:"enabled"}
+    // is rejected). On Opus 5, disabling thinking is fine at effort "low".
+    const thinkPref = (env.NARRATE_THINKING || "auto").toLowerCase();
+    const isHaiku = /haiku/i.test(model);
+    if (thinkPref === "off") {
+      if (!/fable|mythos/i.test(model)) reqBody.thinking = { type: "disabled" };
+    } else if (!isHaiku) {                // "on" or "auto"
+      reqBody.thinking = { type: "adaptive" };
+    }
 
     let apiResp;
     try {

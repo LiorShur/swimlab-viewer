@@ -14,6 +14,12 @@ ALLOWED_ORIGIN = "https://liorshur.github.io"
 # 
 NARRATE_MODEL = "claude-haiku-4-5"
 
+# Thinking control (independent of the model). Uncomment to override:
+#   "auto" (default) — on for Sonnet 5 / Opus 5, off for Haiku 4.5
+#   "on"             — thinking on (Sonnet 5 / Opus 5; Haiku can't, stays off)
+#   "off"            — thinking off (faster; e.g. Sonnet 5 without thinking)
+# NARRATE_THINKING = "off"
+
 # Secrets are NOT stored here. Set them once with wrangler:
 #   npx wrangler secret put ANTHROPIC_API_KEY
 #   npx wrangler secret put SHARED_SECRET     # optional
