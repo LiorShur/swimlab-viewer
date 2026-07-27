@@ -80,12 +80,12 @@ in `localStorage`.
 Live Hebrew is produced by **translating the English narration**, not by
 composing Hebrew from scratch — translation is a more constrained task, so
 Hebrew quality holds up even on smaller/faster models (lower-resource languages
-degrade first on cheaper models / thinking-off). Mechanically: a Hebrew request
-(`{lang:"he"}`) makes the Worker ask Claude for **both** the `en` narration and
-its `he` translation in **one call** (schema `{en, he}`); the page caches both,
-so toggling English↔Hebrew afterward is instant with no extra call. An English
-request returns English only. The response envelope is
-`{narratives: {en:{…}, he?:{…}}, model}`. Metric citations and numbers are kept
+degrade first on cheaper models / thinking-off). Mechanically: **every**
+narration asks Claude for both the `en` narration and its `he` translation in
+**one call** (schema `{en, he}`), whichever language the user narrated from; the
+page caches both, so toggling English↔Hebrew afterward is instant with no extra
+call and never falls back to the rule-based default. The response envelope is
+`{narratives: {en:{…}, he:{…}}, model}`. Metric citations and numbers are kept
 identical across languages; the Hebrew addresses the swimmer in masculine
 singular (gender is unknown → masculine as the neutral default).
 

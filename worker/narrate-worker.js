@@ -240,11 +240,11 @@ export default {
     //   claude-sonnet-5   — near-Opus quality, faster than Opus
     //   claude-opus-5     — highest quality, slowest (default)
     const model = env.NARRATE_MODEL || "claude-opus-5";
-    const lang = typeof payload.lang === "string" ? payload.lang : "en";
-    // Hebrew requests return English + a Hebrew translation (both cached on the
-    // page); English requests return English only.
-    const dual = lang === "he";
-    const system = SYSTEM + (dual ? TRANSLATE_INSTRUCTION : "");
+    // Always return English + its Hebrew translation in one call, whichever
+    // language the user narrated from — so a single narration caches both and
+    // toggling English↔Hebrew is always instant (no "fell back to default" gap).
+    const dual = true;
+    const system = SYSTEM + TRANSLATE_INSTRUCTION;
 
     const output_config = { format: { type: "json_schema", schema: dual ? DUAL_SCHEMA : SCHEMA } };
     // Haiku 4.5 rejects output_config.effort; every other current model accepts it.
