@@ -626,9 +626,16 @@
       const resp = await fetch(url, {method:"POST", headers, body: JSON.stringify(body)});
       const data = await resp.json().catch(()=>({error:"non-JSON response ("+resp.status+")"}));
       if(!resp.ok || data.error) throw new Error(data.error || ("HTTP "+resp.status));
-      if(!data.summary || !data.corrections || !data.drills) throw new Error("unexpected response shape");
-      data.lang = data.lang || LANG;
-      p._nar[data.lang] = data;         // store under the language the text came back in
+      // Envelope: {narratives:{en:{...}, he?:{...}}, model}. A Hebrew request
+      // returns English + its Hebrew translation — cache every language returned.
+      const narr = data.narratives || {};
+      if(!narr[LANG] || !narr[LANG].summary) throw new Error("unexpected response shape");
+      for(const lg of Object.keys(narr)){
+        const obj = narr[lg];
+        if(!obj || !obj.summary) continue;
+        obj.model = data.model || obj.model || "Claude"; obj.lang = lg;
+        p._nar[lg] = obj;
+      }
       toast(t("toast.narrated", data.model||"Claude"));
     }catch(e){
       toast(t("toast.narrateFail", e.message), true);

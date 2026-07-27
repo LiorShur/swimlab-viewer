@@ -74,11 +74,20 @@ rejects it), so any of the above works with no code change.
 ## Language (English / Hebrew)
 
 The page has an EN/HE toggle (🌐). Static UI, the rule-based fallback text, and
-the live AI narration all follow it — the page sends `{lang: "he"}` in the
-request body and the Worker instructs Claude to write the prose in Hebrew (only
-the prose changes; the metric citations and numbers stay as computed). Narratives
-are cached per language, so switching languages shows the right one without a
-re-call. The default is Hebrew; the choice persists in `localStorage`.
+the live AI narration all follow it. The default is Hebrew; the choice persists
+in `localStorage`.
+
+Live Hebrew is produced by **translating the English narration**, not by
+composing Hebrew from scratch — translation is a more constrained task, so
+Hebrew quality holds up even on smaller/faster models (lower-resource languages
+degrade first on cheaper models / thinking-off). Mechanically: a Hebrew request
+(`{lang:"he"}`) makes the Worker ask Claude for **both** the `en` narration and
+its `he` translation in **one call** (schema `{en, he}`); the page caches both,
+so toggling English↔Hebrew afterward is instant with no extra call. An English
+request returns English only. The response envelope is
+`{narratives: {en:{…}, he?:{…}}, model}`. Metric citations and numbers are kept
+identical across languages; the Hebrew addresses the swimmer in masculine
+singular (gender is unknown → masculine as the neutral default).
 
 To bake Hebrew narratives offline instead of calling live, pass `--lang he`:
 

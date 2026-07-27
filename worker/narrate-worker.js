@@ -71,21 +71,19 @@ swimmer can act on in the water (no metric talk).
 
 Keep the two layers consistent with each other and with the metrics.`;
 
-// Language addendum. The fact table and metric names stay as given; only the
-// prose Claude writes changes language. Mirror this in narrate.py.
-const LANG_INSTRUCTION = {
-  he:
-    "\n\nWrite ALL prose you produce in natural Hebrew — both layers: the " +
-    "headline, swimmer_summary and swimmer_actions (plain, warm, everyday " +
-    "Hebrew for a swimmer), and the coach summary, every correction \"point\", " +
-    "and every drill \"name\" and \"why\". Address the swimmer in the masculine " +
-    "singular (Hebrew גוף שני, זכר יחיד) consistently throughout — the swimmer's " +
-    "gender is unknown, so use masculine as the neutral default and never switch " +
-    "to feminine forms. Keep the grounding \"metric\" strings and all numbers, " +
-    "units and symbols (e.g. Δpitch, °, the gate value) exactly as in the fact " +
-    "table. Pick drills from the English menu but translate the chosen name into " +
-    "Hebrew.",
-};
+// Hebrew is produced by TRANSLATING the English narration (a more constrained,
+// higher-fidelity task than composing Hebrew from scratch — so Hebrew quality
+// holds up even on smaller/faster models). Appended to the system prompt on a
+// Hebrew request; the model returns both `en` and `he` in one call.
+const TRANSLATE_INSTRUCTION =
+  "\n\nReturn BOTH languages in one object. First write the full interpretation " +
+  "in English as the `en` object (the COACH + SWIMMER layers specified above). " +
+  "Then write `he`: a faithful, natural Hebrew translation of every field in " +
+  "`en` — it must say the same things, only in fluent Hebrew. In `he`, address " +
+  "the swimmer in the masculine singular (Hebrew גוף שני, זכר יחיד) consistently " +
+  "and never switch to feminine forms; translate drill names into Hebrew; but " +
+  "keep every \"metric\" string and all numbers, units and symbols (e.g. Δpitch, " +
+  "°, the gate value) exactly as in `en`.";
 
 const SCHEMA = {
   type: "object",
@@ -122,6 +120,14 @@ const SCHEMA = {
   },
   required: ["headline", "swimmer_summary", "swimmer_actions",
              "summary", "corrections", "drills"],
+};
+
+// Dual-language output: the English narration plus its Hebrew translation.
+const DUAL_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: { en: SCHEMA, he: SCHEMA },
+  required: ["en", "he"],
 };
 
 /** Render the payload's metrics as a compact fact table — port of narrate._fact_table. */
@@ -235,15 +241,20 @@ export default {
     //   claude-opus-5     — highest quality, slowest (default)
     const model = env.NARRATE_MODEL || "claude-opus-5";
     const lang = typeof payload.lang === "string" ? payload.lang : "en";
-    const system = SYSTEM + (LANG_INSTRUCTION[lang] || "");
+    // Hebrew requests return English + a Hebrew translation (both cached on the
+    // page); English requests return English only.
+    const dual = lang === "he";
+    const system = SYSTEM + (dual ? TRANSLATE_INSTRUCTION : "");
 
-    const output_config = { format: { type: "json_schema", schema: SCHEMA } };
+    const output_config = { format: { type: "json_schema", schema: dual ? DUAL_SCHEMA : SCHEMA } };
     // Haiku 4.5 rejects output_config.effort; every other current model accepts it.
     if (!/haiku/i.test(model)) output_config.effort = "low";
 
     const reqBody = {
+      // Dual (English + Hebrew) output needs more room, and adaptive thinking
+      // also counts toward max_tokens on Sonnet 5 / Opus 5.
       model,
-      max_tokens: 2000,
+      max_tokens: dual ? 3600 : 2000,
       system,
       output_config,
       messages: [{ role: "user", content: factTable(payload) }],
@@ -282,14 +293,14 @@ export default {
       return json({ error: "no text block in response" }, 502, cors);
     }
 
-    let narrative;
+    let parsed;
     try {
-      narrative = JSON.parse(textBlock.text); // schema-constrained, so this parses
+      parsed = JSON.parse(textBlock.text); // schema-constrained, so this parses
     } catch {
       return json({ error: "model output was not valid JSON" }, 502, cors);
     }
-    narrative.model = data.model || model;
-    narrative.lang = lang;
-    return json(narrative, 200, cors);
+    // Uniform envelope: { narratives: { en:{...}, he?:{...} }, model }.
+    const narratives = dual ? { en: parsed.en, he: parsed.he } : { en: parsed };
+    return json({ narratives, model: data.model || model }, 200, cors);
   },
 };
