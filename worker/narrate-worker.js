@@ -252,7 +252,7 @@ export default {
     // interpretation of a fixed table with no tools, so the default thinking
     // (on for Opus 5 / Sonnet 5) is wasted latency. Fable/Mythos reject
     // disabled thinking, so leave it on there.
-    if (!/fable|mythos/i.test(model)) reqBody.thinking = { type: "disabled" };
+    if (!/fable|mythos/i.test(model)) reqBody.thinking = { type: "ensabled" };
 
     let apiResp;
     try {
