@@ -187,15 +187,19 @@ Keep the tested analysis core clean; let the product layer move fast.
 
 ## 11. Phased roadmap
 
-| Phase | Deliverable |
-|---|---|
-| 0 | Placement registry + unified synth body model + `virtual_sensor()` (head re-expressed through it, no metric change) |
-| 1 | **Sacrum module** end-to-end on synth → lengths, stroke count/rate, tempo, distance, roll symmetry, push-offs; a sacrum viewer module |
-| 2 | Wrist L/R + the **fusion + time-sync layer** (proves R/L symmetry) |
-| 3 | Ankle L/R (kick metrics) |
-| 4 | HR ingest + fusion metrics |
-| 5 | App polish: multi-placement session UX, calibration wizard, history |
-| ✓ | Validate the whole stack on real DOT recordings when hardware lands |
+| Phase | Deliverable | Status |
+|---|---|---|
+| 0 | Placement registry + unified synth body model + `virtual_sensor()` (head re-expressed through it, no metric change) | **done** — head reproduced byte-for-byte (`tests/test_platform.py`) |
+| 1 | **Sacrum module** end-to-end on synth → lengths, stroke count/rate, tempo, distance, roll symmetry, push-offs; a sacrum viewer module | **done** — `swimlab.sacrum` + `sacrum.html` |
+| 2 | Wrist L/R + the **fusion + time-sync layer** (proves R/L symmetry) | **wrist done** (`swimlab.wrist` + `symmetry()`); shared-clock time-sync still to do for onboard-recorded sessions |
+| 3 | Ankle L/R (kick metrics) | planned |
+| 4 | HR ingest + fusion metrics | planned |
+| 5 | App polish: multi-placement session UX, calibration wizard, history | planned |
+| ✓ | Validate the whole stack on real DOT recordings when hardware lands | pending hardware |
 
-**Next up:** Phase 0 + start of Phase 1 — the unified synth body model and the
-sacrum module, built and unit-tested against known ground truth.
+**Done so far:** Phases 0 and 1, plus the wrist L/R module with the first
+two-sensor fusion metric (L/R symmetry + antiphase check). All built and
+unit-tested against `synth.generate_swim()` ground truth in the `swimlab` engine.
+
+**Next up:** the time-sync layer (a shared start marker for onboard-recorded R/L
+pairs) to complete Phase 2, then ankle kick metrics (Phase 3).
