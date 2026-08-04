@@ -4,4 +4,5 @@ __pycache__/
 data.json
 sessions.json
 sacrum.json
+app.json
 prev_*.png

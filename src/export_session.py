@@ -332,6 +332,147 @@ def build_sacrum_set() -> dict:
     return {"sessions": sessions, "default": _SACRUM_PREFAB[0][0]}
 
 
+# --------------------------------------------------------------------------- #
+# Wrist (forearm) placement export -- L + R + symmetry
+# --------------------------------------------------------------------------- #
+
+# (label, archetype, seed, mount, swimmer_id, arm_asymmetry_frac)
+_WRIST_PREFAB = [
+    ("Rotator · S-02", "ROTATOR", 100, (-6.0, 5.0, 14.0), "S-02", 0.03),
+    ("Lifter · S-01", "LIFTER", 100, (4.0, -3.0, 11.0), "S-01", 0.10),
+    ("Mixed · S-03", "MIXED", 100, (8.0, -4.0, 9.0), "S-03", 0.20),
+    ("Asymmetric · S-04", "ASYMMETRIC", 100, (2.0, 7.0, 13.0), "S-04", 0.30),
+    ("Flat · S-05", "FLAT", 100, (-3.0, -6.0, 16.0), "S-05", 0.05),
+]
+
+
+def _wrist_arm_payload(body, side: str, mount, seed: int, noise: bool) -> dict:
+    """Run one forearm sensor through the wrist pipeline -> a compact arm block."""
+    from swimlab import synth, wrist
+
+    placement = {"R": "wrist_r", "L": "wrist_l"}[side]
+    trial, _ = synth.virtual_sensor(body, placement, mount_offset_deg=mount, noise=noise, seed=seed)
+    segs, _ = synth.generate_calibration(
+        mount_offset_deg=mount, pitch_baseline_deg=body.meta["forearm_baseline_deg"],
+        noise=noise, seed=seed + 7,
+    )
+    R = wrist.calibrate_transform(segs["t0a"], segs["t0b"])
+    cal = wrist.apply(trial, R)
+    ev = wrist.detect_events(cal, trial)
+    m = wrist.metrics(cal, ev, side=side)
+    row = m.row(0, named=True)
+
+    t = cal["t"].to_numpy()
+    pitch = cal["pitch_deg"].to_numpy()
+    step = max(1, len(t) // 1200)
+    strokes = [
+        {
+            "t_catch": _trim(s["t_catch"], 2),
+            "t_pull": _trim(s["t_pull"], 2),
+            "t_exit": _trim(s["t_exit"], 2),
+            "min_pitch_deg": _trim(s["min_pitch_deg"], 1),
+            "excluded": bool(s["excluded"]),
+        }
+        for s in ev["strokes"].iter_rows(named=True)
+    ]
+    return {
+        "summary": {
+            "stroke_count": row["stroke_count"],
+            "n_valid_strokes": row["n_valid_strokes"],
+            "stroke_rate_cpm": _trim(row["stroke_rate_cpm"], 1),
+            "mean_cycle_s": _trim(row["mean_cycle_s"], 2),
+            "mean_pull_duration_s": _trim(row["mean_pull_duration_s"], 2),
+            "mean_recovery_duration_s": _trim(row["mean_recovery_duration_s"], 2),
+            "pull_fraction": _trim(row["pull_fraction"], 3),
+            "pitch_amplitude_deg": _trim(row["pitch_amplitude_deg"], 1),
+        },
+        "flags": sorted(row.get("flags") or []),
+        "strokes": strokes,
+        "traces": {
+            "t": [_trim(x, 3) for x in t[::step]],
+            "pitch": [_trim(x, 1) for x in pitch[::step]],
+        },
+        "_ev": ev,  # kept only to compute symmetry; stripped before serialising
+    }
+
+
+def wrist_from_mock(
+    archetype: str, seed: int, mount: tuple[float, float, float], swimmer_id: str = "S-01",
+    *, arm_asymmetry_frac: float = 0.0, noise: bool = True,
+) -> dict:
+    """Both forearm sensors from one body + the L/R symmetry fusion metric."""
+    from swimlab import synth, wrist
+
+    body = synth.generate_swim(
+        archetype, seed=seed, pitch_baseline_deg=4.0, arm_asymmetry_frac=arm_asymmetry_frac
+    )
+    arms = {s: _wrist_arm_payload(body, s, mount, seed, noise) for s in ("R", "L")}
+    from swimlab import wrist as _w  # metrics frames for symmetry()
+    mR = _pl_from_arm(arms["R"]); mL = _pl_from_arm(arms["L"])
+    sym = _w.symmetry(mR, mL, arms["R"].pop("_ev"), arms["L"].pop("_ev")).row(0, named=True)
+    return {
+        "placement": "wrist",
+        "swimmer_id": f"{swimmer_id} (synthetic {archetype.lower()})",
+        "session": "T7 — 4×25 m front crawl",
+        "mount_offset_deg": [_trim(v, 1) for v in mount],
+        "archetype": archetype,
+        "arms": arms,
+        "symmetry": {k: _trim(v, 3) for k, v in sym.items()},
+        "flags": sorted(set(arms["R"]["flags"]) | set(arms["L"]["flags"])),
+    }
+
+
+def _pl_from_arm(arm: dict):
+    """A one-row polars frame of an arm's summary, for wrist.symmetry()."""
+    import polars as pl
+    s = arm["summary"]
+    return pl.DataFrame([{
+        "side": None,
+        "stroke_count": s["stroke_count"],
+        "n_valid_strokes": s["n_valid_strokes"],
+        "stroke_rate_cpm": s["stroke_rate_cpm"],
+        "mean_cycle_s": s["mean_cycle_s"],
+        "mean_pull_duration_s": s["mean_pull_duration_s"],
+        "mean_recovery_duration_s": s["mean_recovery_duration_s"],
+        "pull_fraction": s["pull_fraction"],
+        "pitch_amplitude_deg": s["pitch_amplitude_deg"],
+        "mean_min_pitch_deg": None,
+        "flags": arm["flags"],
+    }])
+
+
+def build_wrist_set() -> dict:
+    """Prefab swimmers' wrist (L+R+symmetry) into a multi-session bundle."""
+    sessions = {}
+    for label, arch, seed, mount, sid, asym in _WRIST_PREFAB:
+        sessions[label] = wrist_from_mock(arch, seed, mount, swimmer_id=sid, arm_asymmetry_frac=asym)
+        sy = sessions[label]["symmetry"]
+        rR = sessions[label]["arms"]["R"]["summary"]; rL = sessions[label]["arms"]["L"]["summary"]
+        print(f"  {label:20s} R:{rR['stroke_count']}str/{rR['pitch_amplitude_deg']}° "
+              f"L:{rL['stroke_count']}str/{rL['pitch_amplitude_deg']}° "
+              f"amp_sym={sy['amplitude_symmetry_index']} phase={sy['mean_phase_offset_cycles']}")
+    return {"sessions": sessions, "default": _WRIST_PREFAB[0][0]}
+
+
+def build_app_bundle() -> dict:
+    """One bundle for the holistic app: head + sacrum + wrist prefab sets.
+
+    Shape: ``{placements: {head, sacrum, wrist}, default_placement}``. Each
+    placement value is a ``{sessions, default}`` bundle the app renders per its
+    placement type. Head reuses the (un-narrated) head set.
+    """
+    print("head set:")
+    head = build_set(narrate_model=None)
+    print("sacrum set:")
+    sacrum_b = build_sacrum_set()
+    print("wrist set:")
+    wrist_b = build_wrist_set()
+    return {
+        "placements": {"head": head, "sacrum": sacrum_b, "wrist": wrist_b},
+        "default_placement": "sacrum",
+    }
+
+
 def from_session(path: Path) -> dict:
     """Read a real session directory via swimlab's run_session (io.py path)."""
     raise NotImplementedError(
@@ -350,6 +491,10 @@ def main() -> None:
                      help="build the prefab multi-swimmer bundle for the dropdown")
     src.add_argument("--sacrum-set", action="store_true",
                      help="build the prefab sacrum (pelvis) bundle for the sacrum viewer")
+    src.add_argument("--wrist-set", action="store_true",
+                     help="build the prefab wrist (forearm L+R+symmetry) bundle")
+    src.add_argument("--app-bundle", action="store_true",
+                     help="build the combined head+sacrum+wrist bundle for the holistic app")
     src.add_argument("--session", type=Path, help="a real session directory (blocked)")
     ap.add_argument("--seed", type=int, default=100,
                     help="a different individual of the archetype (re-rolls everything)")
@@ -389,6 +534,21 @@ def main() -> None:
         payload = build_sacrum_set()
         args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"wrote {args.out} — {len(payload['sessions'])} sacrum sessions")
+        return
+
+    if args.wrist_set:
+        print("building prefab wrist set:")
+        payload = build_wrist_set()
+        args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"wrote {args.out} — {len(payload['sessions'])} wrist sessions")
+        return
+
+    if args.app_bundle:
+        print("building holistic app bundle:")
+        payload = build_app_bundle()
+        args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        n = {k: len(v["sessions"]) for k, v in payload["placements"].items()}
+        print(f"wrote {args.out} — placements {n}")
         return
 
     if args.mock:

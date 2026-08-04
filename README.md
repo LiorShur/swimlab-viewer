@@ -12,6 +12,27 @@ and a head-position schematic. Built to consume the `swimlab` analysis library;
 > Correction points and drills are standard freestyle-breathing coaching cues,
 > included illustratively. Nothing here is a clinical or validated finding yet.
 
+## The holistic app (`index.html`)
+
+`index.html` is the **main page**: one app that unifies every sensor placement.
+Pick a placement (Sacrum / Wrist L+R / Head), choose a swimmer, or **import a
+session file** — each placement renders a **summary-first** card with the headline
+metrics and a **"See the full analysis"** expander (charts + tables), the same
+pattern as the head dashboard.
+
+```bash
+python src/export_session.py --app-bundle --out app.json
+python src/build.py --data app.json --template src/app_template.html --out index.html
+```
+
+**Import** accepts an exported session file — a single `--mock` payload, a
+`--set`/`--sacrum-set`/`--wrist-set` bundle, or a whole `--app-bundle`. It
+auto-detects the placement and routes to the right view. A static GitHub Pages
+page can't run the Python pipeline, so raw Movella DOT files must first be turned
+into a session file by the engine (or a small service) — that's the one documented
+hook for real-sensor data. The individual pages (`dashboard.html` for the
+narration-rich head view, `sacrum.html`) still build the same way.
+
 ## How it works
 
 ```
