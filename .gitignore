@@ -3,4 +3,5 @@ __pycache__/
 .venv/
 data.json
 sessions.json
+sacrum.json
 prev_*.png

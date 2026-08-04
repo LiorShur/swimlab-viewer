@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>swimlab · sacrum (pelvis)</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1b222c; --line:#232c39;
+    --text:#e6edf3; --muted:#8b97a7; --accent:#4aa8ff; --right:#4aa8ff;
+    --left:#ff8a5b; --good:#3fb950; --warn:#d29922; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f5f7fa;--panel:#fff;--panel2:#f0f3f7;--line:#e2e8f0;
+      --text:#1a2028;--muted:#5a6675;--accent:#1f6feb;--right:#1f6feb;--left:#e8590c;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 20px 60px}
+  header{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;
+    justify-content:space-between;margin-bottom:6px}
+  h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+  h1 .tag{font-size:12px;color:var(--muted);font-weight:500;margin-left:8px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .picker{display:flex;gap:8px;align-items:center}
+  select{background:var(--panel);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;font-size:14px;font-family:var(--sans)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .banner{margin:14px 0 4px;padding:9px 13px;border-radius:8px;font-size:13px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;margin:16px 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .kpi .k-lab{font-size:11.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600}
+  .kpi .k-val{font-family:var(--mono);font-variant-numeric:tabular-nums;
+    font-size:26px;font-weight:600;margin-top:8px;letter-spacing:-.02em}
+  .kpi .k-val .u{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+  .kpi .k-sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 17px;margin:16px 0}
+  .panel h2{font-size:14px;margin:0 0 3px;font-weight:600}
+  .panel .hint{font-size:12px;color:var(--muted);margin:0 0 12px}
+  canvas{width:100%;height:260px;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+  .legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;
+    vertical-align:-1px;margin-right:5px}
+  .sym{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .sym .bar{flex:1;height:26px;border-radius:6px;overflow:hidden;display:flex;
+    background:var(--panel2);border:1px solid var(--line)}
+  .sym .bar .l{background:var(--left);opacity:.85}
+  .sym .bar .r{background:var(--right);opacity:.85}
+  .sym .cap{font-size:12px;color:var(--muted);min-width:64px}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+  thead th{text-align:right;padding:8px 12px;color:var(--muted);font-weight:600;
+    border-bottom:1px solid var(--line);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+  thead th:first-child,tbody td:first-child{text-align:left}
+  tbody td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:none}
+  .foot{color:var(--muted);font-size:12px;margin-top:24px;line-height:1.6}
+  .foot code{font-family:var(--mono);font-size:11.5px}
+  .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>swimlab <span class="tag">· sacrum (pelvis) placement</span></h1>
+      <div class="sub" id="sub">—</div>
+    </div>
+    <div class="picker">
+      <label for="pick" style="font-size:13px;color:var(--muted)">Swimmer</label>
+      <select id="pick"></select>
+    </div>
+  </header>
+
+  <div class="banner">
+    The sacrum sensor reads whole-body <b>roll</b> and the wall <b>push-off</b> spikes.
+    From those alone it recovers lengths, stroke count, tempo and body-roll symmetry.
+    <b>Distance = lengths × pool length</b> — an IMU cannot measure position.
+    <span id="flags"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <h2>Body roll over the swim</h2>
+    <p class="hint">Gravity-referenced pelvis roll. Each stroke is one roll lobe;
+      successive strokes alternate side. Ticks mark detected strokes
+      (<span style="color:var(--right)">right</span> up /
+      <span style="color:var(--left)">left</span> down); dashed lines are push-offs;
+      shaded bands are the post-push-off glide excluded from tempo.</p>
+    <canvas id="chart" role="img" aria-label="Pelvis roll versus time with stroke and push-off markers"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--right)"></span>roll to right (+)</span>
+      <span><span class="sw" style="background:var(--left)"></span>roll to left (−)</span>
+      <span><span class="sw" style="background:var(--muted)"></span>push-off / excluded glide</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Left / right roll symmetry</h2>
+    <p class="hint">Mean peak roll per side. A balanced stroke fills the bar evenly;
+      the symmetry index is (right − left) / mean.</p>
+    <div class="sym">
+      <span class="cap" style="text-align:left;color:var(--left)">L <span id="symL" class="num">—</span>°</span>
+      <div class="bar"><div class="l" id="barL"></div><div class="r" id="barR"></div></div>
+      <span class="cap" style="color:var(--right)"><span id="symR" class="num">—</span>° R</span>
+    </div>
+    <div class="sub" style="margin-top:8px">Symmetry index <span id="symIdx" class="num">—</span>
+      <span class="chip" id="symTag">—</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Per length</h2>
+    <p class="hint">Lengths are delimited by detected push-offs; duration is the
+      pace signal (an IMU has no position, so first/last 5 m is a time proxy).</p>
+    <table>
+      <thead><tr><th>Length</th><th>Start (s)</th><th>Duration (s)</th><th>Strokes</th></tr></thead>
+      <tbody id="lenBody"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    Synthetic pilot data — one <code>synth.generate_swim()</code> body, a virtual
+    sacrum sensor, calibrated (upright + prone glide) and run through
+    <code>swimlab.sacrum</code> (calibrate → events → metrics). Every number here
+    is scored against known ground truth in <code>tests/test_sacrum.py</code>.
+    Validate on real Movella DOT recordings when the hardware lands.
+  </div>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){
+  const raw = JSON.parse(document.getElementById("data").textContent);
+  const SESSIONS = raw.sessions ? raw.sessions : {[(raw.swimmer_id||"Session")]: raw};
+  let activeKey = (raw.default && SESSIONS[raw.default]) ? raw.default : Object.keys(SESSIONS)[0];
+
+  const $ = id => document.getElementById(id);
+  const fmt = (x,d=1)=> (x==null || Number.isNaN(x)) ? "—" : Number(x).toFixed(d);
+  const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  const pick = $("pick");
+  pick.innerHTML = Object.keys(SESSIONS).map(k=>`<option value="${esc(k)}"${k===activeKey?" selected":""}>${esc(k)}</option>`).join("");
+  pick.addEventListener("change", ()=>{ activeKey=pick.value; render(SESSIONS[activeKey]); });
+
+  function kpiHTML(lab,val,unit,sub){
+    return `<div class="kpi"><div class="k-lab">${lab}</div>`+
+      `<div class="k-val">${val}${unit?`<span class="u">${unit}</span>`:""}</div>`+
+      `<div class="k-sub">${sub||""}</div></div>`;
+  }
+
+  function render(p){
+    const s = p.summary;
+    $("sub").textContent = `${p.swimmer_id} · ${p.session} · pool ${fmt(p.pool_length_m,0)} m`;
+    const fl = p.flags||[];
+    $("flags").innerHTML = fl.length ? fl.map(f=>`<span class="chip" style="color:var(--warn)">${esc(f)}</span>`).join("") : "";
+
+    $("kpis").innerHTML = [
+      kpiHTML("Lengths", s.lengths, "", `${fmt(p.pool_length_m,0)} m pool`),
+      kpiHTML("Distance", fmt(s.distance_m,0), "m", "lengths × pool"),
+      kpiHTML("Stroke count", s.stroke_count, "", `${s.n_valid_strokes} valid`),
+      kpiHTML("Tempo", fmt(s.tempo_spm,1), "spm", `${fmt(s.mean_stroke_period_s,2)} s/stroke`),
+      kpiHTML("Stroke rate", fmt(s.stroke_rate_cpm,1), "cpm", "cycles / min"),
+      kpiHTML("Body roll", fmt(s.body_roll_amplitude_deg,1), "°", "mean peak roll"),
+      kpiHTML("L/R symmetry", fmt(s.roll_symmetry_index,3), "", symLabel(s.roll_symmetry_index)),
+      kpiHTML("Push-offs", s.pushoff_count, "", `${fmt(s.mean_pushoff_interval_s,1)} s apart`),
+      kpiHTML("Pace drift", (s.pace_drift_s_per_length>0?"+":"")+fmt(s.pace_drift_s_per_length,2), "s/len",
+        s.pace_drift_s_per_length>0.05?"slowing":s.pace_drift_s_per_length<-0.05?"speeding":"steady"),
+    ].join("");
+
+    // symmetry bar
+    const R=s.mean_peak_roll_right_deg||0, L=s.mean_peak_roll_left_deg||0, tot=Math.max(R+L,1e-6);
+    $("barR").style.width=(100*R/tot)+"%"; $("barL").style.width=(100*L/tot)+"%";
+    $("symR").textContent=fmt(R,1); $("symL").textContent=fmt(L,1);
+    $("symIdx").textContent=fmt(s.roll_symmetry_index,3);
+    const tag=$("symTag"); tag.textContent=symLabel(s.roll_symmetry_index);
+    tag.style.color = Math.abs(s.roll_symmetry_index)<0.1 ? "var(--good)" : "var(--warn)";
+
+    // per-length table
+    $("lenBody").innerHTML = (p.lengths||[]).map(l=>
+      `<tr><td>#${l.length_index+1}</td><td>${fmt(l.t_start,1)}</td>`+
+      `<td>${fmt(l.duration_s,1)}</td><td>${l.strokes}</td></tr>`).join("");
+
+    drawChart(p);
+  }
+
+  function symLabel(i){
+    if(i==null) return "—";
+    const a=Math.abs(i);
+    if(a<0.1) return "balanced";
+    return (i>0?"right-dominant":"left-dominant");
+  }
+
+  function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  function drawChart(p){
+    const cv=$("chart"), dpr=window.devicePixelRatio||1;
+    const W=cv.clientWidth, H=260;
+    cv.width=W*dpr; cv.height=H*dpr;
+    const ctx=cv.getContext("2d"); ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,W,H);
+    const T=p.traces.t, Roll=p.traces.roll;
+    if(!T.length) return;
+    const padL=44,padR=12,padT=12,padB=24;
+    const x0=padL,x1=W-padR,y0=padT,y1=H-padB;
+    const tMin=T[0], tMax=T[T.length-1];
+    let rMax=0; for(const r of Roll) rMax=Math.max(rMax,Math.abs(r));
+    rMax=Math.max(30,Math.ceil(rMax/10)*10);
+    const X=t=>x0+(x1-x0)*(t-tMin)/(tMax-tMin||1);
+    const Y=r=>{const yc=(y0+y1)/2; return yc-(r/rMax)*((y1-y0)/2);};
+
+    const line=cssv("--line"), muted=cssv("--muted"), rightc=cssv("--right"), leftc=cssv("--left"), text=cssv("--text");
+
+    // excluded glide bands (4 s after each push-off)
+    ctx.fillStyle=line;
+    for(const po of (p.pushoffs||[])){ const bx0=X(po), bx1=X(po+4.0);
+      ctx.globalAlpha=0.45; ctx.fillRect(bx0,y0,Math.max(bx1-bx0,1),y1-y0); ctx.globalAlpha=1; }
+
+    // axes: zero line + grid
+    ctx.strokeStyle=line; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,Y(0)); ctx.lineTo(x1,Y(0)); ctx.stroke();
+    ctx.fillStyle=muted; ctx.font="11px "+cssv("--mono"); ctx.textAlign="right"; ctx.textBaseline="middle";
+    for(const g of [-rMax,-rMax/2,0,rMax/2,rMax]){ ctx.fillStyle=muted;
+      ctx.fillText((g>0?"+":"")+g+"°", x0-6, Y(g)); }
+
+    // roll line
+    ctx.strokeStyle=cssv("--accent"); ctx.lineWidth=1.6; ctx.beginPath();
+    for(let i=0;i<T.length;i++){ const px=X(T[i]),py=Y(Roll[i]); i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.stroke();
+
+    // push-off dashed verticals
+    ctx.strokeStyle=muted; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+    for(const po of (p.pushoffs||[])){ const px=X(po);
+      ctx.beginPath(); ctx.moveTo(px,y0); ctx.lineTo(px,y1); ctx.stroke(); }
+    ctx.setLineDash([]);
+
+    // stroke ticks (R up, L down); excluded dimmed
+    for(const st of (p.strokes||[])){
+      const px=X(st.t_peak); const up=st.side==="R";
+      ctx.strokeStyle = up?rightc:leftc; ctx.globalAlpha = st.excluded?0.3:1; ctx.lineWidth=2;
+      const yb=Y(0); const yt=up?yb-10:yb+10;
+      ctx.beginPath(); ctx.moveTo(px,yb); ctx.lineTo(px,yt); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    // x label
+    ctx.fillStyle=muted; ctx.textAlign="center"; ctx.textBaseline="bottom";
+    ctx.fillText("time (s) →", (x0+x1)/2, H-4);
+  }
+
+  window.addEventListener("resize", ()=>drawChart(SESSIONS[activeKey]));
+  render(SESSIONS[activeKey]);
+})();
+</script>
+</body>
+</html>

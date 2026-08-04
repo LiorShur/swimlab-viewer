@@ -137,6 +137,25 @@ and `--mount` vary the swim and the sensor setup. The parquet files carry only t
 canonical schema (`t / quat_* / acc_* / gyr_* / mag_*`) — exactly what `io.py` must
 normalise a real Movella DOT download into.
 
+## Sacrum (pelvis) viewer — the second placement
+
+The platform is organised around **placements, not sensors** (see
+`docs/platform-design.md`): the same DOT means different things on the head, the
+sacrum, a wrist. `sacrum.html` is the pelvis view — built the same way as the head
+dashboard, but from `swimlab.sacrum` instead of the head module:
+
+```bash
+python src/export_session.py --sacrum-set --out sacrum.json
+python src/build.py --data sacrum.json --template src/sacrum_template.html --out sacrum.html
+```
+
+It shows what the sacrum sensor alone recovers from whole-body **roll** and the wall
+**push-off** spikes: lengths, distance (= lengths × pool length — an IMU has no
+position), stroke count, tempo / stroke rate, body-roll amplitude, **L/R roll
+symmetry**, push-off count/interval and pace drift. Each swimmer is one
+`synth.generate_swim()` body sampled by a virtual sacrum sensor; every number is
+scored against known ground truth in the engine's `tests/test_sacrum.py`.
+
 ## Status & scope
 
 This is a visualization prototype, deliberately separate from `swimlab` (whose

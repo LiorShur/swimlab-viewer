@@ -195,6 +195,143 @@ def build_set(narrate_model: str | None = None, lang: str = "en") -> dict:
     return {"sessions": sessions, "default": _PREFAB[0][0]}
 
 
+# --------------------------------------------------------------------------- #
+# Sacrum (pelvis) placement export -- the second viewer module
+# --------------------------------------------------------------------------- #
+
+# Prefab swimmers for the sacrum viewer. Each carries its own body-roll amplitude
+# and a small L/R imbalance so the symmetry metric shows real variety.
+# (label, archetype, seed, mount, swimmer_id, body_roll_amp_deg, roll_asymmetry_frac)
+_SACRUM_PREFAB = [
+    ("Rotator · S-02", "ROTATOR", 100, (-6.0, 5.0, 14.0), "S-02", 52.0, 0.04),
+    ("Lifter · S-01", "LIFTER", 100, (4.0, -3.0, 11.0), "S-01", 40.0, 0.10),
+    ("Mixed · S-03", "MIXED", 100, (8.0, -4.0, 9.0), "S-03", 46.0, 0.18),
+    ("Asymmetric · S-04", "ASYMMETRIC", 100, (2.0, 7.0, 13.0), "S-04", 48.0, 0.28),
+    ("Flat · S-05", "FLAT", 100, (-3.0, -6.0, 16.0), "S-05", 44.0, 0.06),
+]
+
+
+def sacrum_from_mock(
+    archetype: str,
+    seed: int,
+    mount: tuple[float, float, float],
+    swimmer_id: str = "S-01",
+    *,
+    body_roll_amp_deg: float = 48.0,
+    roll_asymmetry_frac: float = 0.0,
+    pool_length_m: float = 25.0,
+    n_lengths: int = 4,
+    noise: bool = True,
+) -> dict:
+    """Synthesise a swimmer body and run its sacrum sensor through the pipeline.
+
+    Mirrors :func:`from_mock` for the head, but on the pelvis: one
+    ``synth.generate_swim`` body, a virtual sacrum sensor, calibrated against a
+    matched upright+prone pose pair (:func:`synth.generate_calibration` at the
+    pelvis baseline), through ``sacrum.calibrate -> detect_events -> metrics``.
+    Distance is ``lengths x pool_length_m`` -- an IMU cannot measure position.
+    """
+    from swimlab import sacrum, synth
+
+    body = synth.generate_swim(
+        archetype, seed=seed, pitch_baseline_deg=4.0, n_lengths=n_lengths,
+        body_roll_amp_deg=body_roll_amp_deg, roll_asymmetry_frac=roll_asymmetry_frac,
+        pool_length_m=pool_length_m,
+    )
+    trial, _ = synth.virtual_sensor(body, "sacrum", mount_offset_deg=mount, noise=noise, seed=seed)
+    segs, _ = synth.generate_calibration(
+        mount_offset_deg=mount, pitch_baseline_deg=body.meta["pelvis_baseline_deg"],
+        noise=noise, seed=seed + 7,
+    )
+    R = sacrum.calibrate_transform(segs["t0a"], segs["t0b"])
+    pose_flag = sacrum.pose_check(segs["t0a"], segs["t0b"])
+    cal = sacrum.apply(trial, R)
+    ev = sacrum.detect_events(cal, trial)
+    m = sacrum.metrics(cal, ev, pool_length_m=pool_length_m)
+
+    row = m.row(0, named=True)
+    flags = list(row.get("flags") or [])
+    if pose_flag:
+        flags.append(pose_flag)
+
+    t = cal["t"].to_numpy()
+    roll = cal["roll_deg"].to_numpy()
+    step = max(1, len(t) // 1500)
+
+    strokes = [
+        {
+            "t_peak": _trim(s["t_peak"], 2),
+            "side": s["side"],
+            "peak_roll_deg": _trim(s["peak_roll_deg"], 1),
+            "length_index": s["length_index"],
+            "excluded": bool(s["excluded"]),
+        }
+        for s in ev["strokes"].iter_rows(named=True)
+    ]
+    lengths = []
+    for lr in ev["lengths"].iter_rows(named=True):
+        li = lr["length_index"]
+        n_str = sum(1 for s in strokes if s["length_index"] == li and not s["excluded"])
+        lengths.append(
+            {
+                "length_index": li,
+                "t_start": _trim(lr["t_start"], 2),
+                "t_end": _trim(lr["t_end"], 2),
+                "duration_s": _trim(lr["duration_s"], 2),
+                "strokes": n_str,
+            }
+        )
+
+    return {
+        "placement": "sacrum",
+        "swimmer_id": f"{swimmer_id} (synthetic {archetype.lower()})",
+        "session": "T7 — 4×25 m front crawl",
+        "pool_length_m": pool_length_m,
+        "mount_offset_deg": [_trim(v, 1) for v in mount],
+        "archetype": archetype,
+        "summary": {
+            "lengths": row["lengths"],
+            "distance_m": _trim(row["distance_m"], 1),
+            "stroke_count": row["stroke_count"],
+            "n_valid_strokes": row["n_valid_strokes"],
+            "tempo_spm": _trim(row["tempo_spm"], 1),
+            "stroke_rate_cpm": _trim(row["stroke_rate_cpm"], 1),
+            "mean_stroke_period_s": _trim(row["mean_stroke_period_s"], 2),
+            "body_roll_amplitude_deg": _trim(row["body_roll_amplitude_deg"], 1),
+            "mean_peak_roll_right_deg": _trim(row["mean_peak_roll_right_deg"], 1),
+            "mean_peak_roll_left_deg": _trim(row["mean_peak_roll_left_deg"], 1),
+            "roll_symmetry_index": _trim(row["roll_symmetry_index"], 3),
+            "pushoff_count": row["pushoff_count"],
+            "mean_pushoff_interval_s": _trim(row["mean_pushoff_interval_s"], 2),
+            "pace_drift_s_per_length": _trim(row["pace_drift_s_per_length"], 3),
+        },
+        "flags": sorted(set(flags)),
+        "lengths": lengths,
+        "strokes": strokes,
+        "pushoffs": [_trim(x, 2) for x in ev["pushoffs"]["t_peak"].to_numpy()]
+        if "t_peak" in ev["pushoffs"].columns else [],
+        "traces": {
+            "t": [_trim(x, 3) for x in t[::step]],
+            "roll": [_trim(x, 1) for x in roll[::step]],
+        },
+    }
+
+
+def build_sacrum_set() -> dict:
+    """Run the prefab swimmers' sacrum sensors into a multi-session bundle."""
+    sessions = {}
+    for label, arch, seed, mount, sid, amp, asym in _SACRUM_PREFAB:
+        sessions[label] = sacrum_from_mock(
+            arch, seed, mount, swimmer_id=sid,
+            body_roll_amp_deg=amp, roll_asymmetry_frac=asym,
+        )
+        s = sessions[label]["summary"]
+        print(f"  {label:20s} lengths={s['lengths']} strokes={s['stroke_count']} "
+              f"tempo={s['tempo_spm']}spm roll={s['body_roll_amplitude_deg']}° "
+              f"sym={s['roll_symmetry_index']}  flags={sessions[label]['flags'] or 'none'}")
+    return {"sessions": sessions, "default": _SACRUM_PREFAB[0][0]}
+
+
 def from_session(path: Path) -> dict:
     """Read a real session directory via swimlab's run_session (io.py path)."""
     raise NotImplementedError(
@@ -211,6 +348,8 @@ def main() -> None:
                      help="synthesise one swimmer: LIFTER|ROTATOR|MIXED|FLAT|ASYMMETRIC")
     src.add_argument("--set", action="store_true",
                      help="build the prefab multi-swimmer bundle for the dropdown")
+    src.add_argument("--sacrum-set", action="store_true",
+                     help="build the prefab sacrum (pelvis) bundle for the sacrum viewer")
     src.add_argument("--session", type=Path, help="a real session directory (blocked)")
     ap.add_argument("--seed", type=int, default=100,
                     help="a different individual of the archetype (re-rolls everything)")
@@ -243,6 +382,13 @@ def main() -> None:
         payload = build_set(narrate_model=narrate_model, lang=args.lang)
         args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"wrote {args.out} — {len(payload['sessions'])} swimmers")
+        return
+
+    if args.sacrum_set:
+        print("building prefab sacrum set:")
+        payload = build_sacrum_set()
+        args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"wrote {args.out} — {len(payload['sessions'])} sacrum sessions")
         return
 
     if args.mock:
