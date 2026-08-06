@@ -11,6 +11,6 @@
   "storage": { "rules": "storage.rules" },
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "**/.*", "functions/**", "src/**", "docs/**", "worker/**", "**/node_modules/**"]
+    "ignore": ["firebase.json", "**/.*", "functions/**", "src/**", "docs/**", "worker/**", "native/**", "**/node_modules/**"]
   }
 }
