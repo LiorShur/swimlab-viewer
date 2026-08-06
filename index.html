@@ -91,6 +91,27 @@
   #narratebtn[disabled]{opacity:.6;cursor:progress}
   .foot{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.6}
   .foot code{font-family:var(--mono);font-size:11.5px;direction:ltr}
+  ul.drills{list-style:none;padding:0;margin:6px 0 0}
+  ul.drills li{padding:11px 0;border-bottom:1px solid var(--line)}
+  ul.drills li:last-child{border-bottom:none}
+  ul.drills .dname{font-size:14px;font-weight:600}
+  ul.drills .dacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .dbtn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;
+    padding:5px 11px;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
+  .dbtn:hover{border-color:var(--accent)}
+  .dhowto{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .dhowto[hidden]{display:none}
+  .vmodal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center}
+  .vmodal[hidden]{display:none}
+  .vbackdrop{position:absolute;inset:0;background:rgba(0,0,0,.72)}
+  .vbox{position:relative;width:min(880px,92vw);background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .vbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-weight:600;font-size:14px}
+  .vclose{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1}
+  .vframe-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+  .vframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .vopen{display:block;padding:10px 14px;font-size:12.5px;color:var(--accent);text-decoration:none}
+  .vopen:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -117,6 +138,15 @@
   <div id="detail"></div>
 
   <div class="foot" id="foot"></div>
+</div>
+
+<div id="videoModal" class="vmodal" hidden>
+  <div class="vbackdrop" data-close></div>
+  <div class="vbox" role="dialog" aria-modal="true">
+    <div class="vbar"><span id="videoTitle"></span><button id="videoClose" class="vclose" data-close aria-label="close">✕</button></div>
+    <div class="vframe-wrap"><iframe id="videoFrame" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>
+    <a id="videoOpen" class="vopen" target="_blank" rel="noopener"></a>
+  </div>
 </div>
 
 <script type="application/json" id="data">{
@@ -74116,6 +74146,11 @@
       tryThis:"Try this", drills:"Drills",
       narrateFail:"Live narration failed — showing rule-based findings.",
       narratePrompt:"Narration Worker URL (e.g. https://swimlab-narrate.<you>.workers.dev):",
+      h_motion:"Motion", drillsLib:"Drills to try", drillWatch:"▶ Watch", drillHowto:"▾ How to",
+      modalClose:"Close", drillOpenYt:"Open on YouTube ↗",
+      hint_motion:{head:"A simple schematic driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
+        sacrum:"A rear view of the torso rolling side to side, driven by the recorded body-roll trace.",
+        wrist:"The two forearms swinging through catch → pull → recovery, driven by each arm's pitch — antiphase, as recorded."},
       seeFull:"See the full analysis", coaching:"Coaching points",
       disclaimer:"Illustrative and hypothesis-based — not a validated finding.",
       headLink:"The head module also has AI narration + drills → ",
@@ -74163,6 +74198,11 @@
       tryThis:"נסה את זה", drills:"תרגילים",
       narrateFail:"הניתוח החי נכשל — מוצגים ממצאים מבוססי-כללים.",
       narratePrompt:"כתובת Worker לניתוח (למשל https://swimlab-narrate.<you>.workers.dev):",
+      h_motion:"תנועה", drillsLib:"תרגילים לתרגול", drillWatch:"▶ צפה", drillHowto:"▾ איך",
+      modalClose:"סגור", drillOpenYt:"פתח ביוטיוב ↗",
+      hint_motion:{head:"סכמה פשוטה המונעת מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
+        sacrum:"מבט מאחור על הגו המתגלגל מצד לצד, מונע מאות סיבוב-הגוף שנמדד.",
+        wrist:"שתי האמות נעות דרך תפיסה → משיכה → התאוששות, מונע מזווית כל יד — באנטי-פאזה, כפי שנמדד."},
       seeFull:"הצג את הניתוח המלא", coaching:"נקודות אימון",
       disclaimer:"להמחשה ומבוסס-השערה — לא ממצא מאומת.",
       headLink:"למודול הראש יש גם ניתוח AI ותרגילים → ",
@@ -74339,6 +74379,154 @@
   }
   $("narratebtn").addEventListener("click", narrateLive);
 
+  // ---- drills library (verified free demo videos + bilingual how-to) ----
+  const DRILLS = {
+    head:[
+      {yt:"kno0orQgy2Q", name:{en:"One-goggle-out cue",he:"רמז משקף אחד בחוץ"}, howto:{
+        en:"As you breathe, rotate just enough to clear your mouth while keeping the lower goggle in the water. It caps how far you turn and stops the head from lifting. Try a length breathing every 3, checking one goggle stays under each breath.",
+        he:"בזמן הנשימה, סובב רק עד שהפה יוצא מהמים, תוך שמירה על המשקף התחתון בתוך המים. זה מגביל את מידת הסיבוב ומונע הרמת ראש. נסה אורך בריכה בנשימה כל 3, וודא שמשקף אחד נשאר מתחת למים בכל נשימה."}},
+      {yt:"Gq2asyrI0MI", name:{en:"Exhale-pattern breathing",he:"נשיפה מבוקרת"}, howto:{
+        en:"Breathe out steadily through nose and mouth the whole time your face is in the water, so you only inhale when you turn to air. A continuous stream of bubbles removes the rushed, late breath and the head-lift that comes with it.",
+        he:"נשוף באופן רציף דרך האף והפה כל עוד הפנים במים, כך שתשאף רק כשאתה פונה לאוויר. זרם בועות קבוע מבטל את הנשימה החפוזה והמאוחרת ואת הרמת הראש שנלווית אליה."}},
+      {yt:"uoAhTVn3v5I", name:{en:"Steady low-head position",he:"ראש נמוך ויציב"}, howto:{
+        en:"Swim relaxed with your eyes down and slightly forward and the waterline around the crown of your head — a neutral, low head position. Hold it steady, especially late in a set as you tire, so the head doesn't creep up.",
+        he:"שחה רגוע כשהמבט למטה ומעט קדימה וקו המים סביב קודקוד הראש — תנוחת ראש ניטרלית ונמוכה. שמור עליה יציבה, במיוחד בסוף סט כשאתה מתעייף, כדי שהראש לא יזחל כלפי מעלה."}},
+    ],
+    sacrum:[
+      {yt:"1VQVfo0icr0", name:{en:"Side-kick balance",he:"איזון בעיטה על הצד"}, howto:{
+        en:"Kick on your side, lower arm extended, top arm resting along your body, head down and cheek on the water. Hold a steady kick and balance, rotating just to breathe. Builds the body roll that lets the breath come from rotation, not a lift.",
+        he:"בעט על הצד, היד התחתונה מושטת, העליונה צמודה לגוף, הראש למטה והלחי על המים. שמור על בעיטה יציבה ואיזון, וסובב רק כדי לנשום. בונה את גלגול הגוף שמאפשר לנשימה לבוא מסיבוב ולא מהרמה."}},
+      {yt:"1rKCME8HfJY", name:{en:"6-kick / 3-stroke switch",he:"6 בעיטות / 3 תנועות מעבר"}, howto:{
+        en:"Push off on your side, one arm extended, the other at your side, head down. Take 6 kicks in that balanced position, then one stroke and switch to the other side for 6 more. The pause on each side grooves rotation and timing.",
+        he:"דחוף מהקיר על הצד, יד אחת מושטת והשנייה צמודה לגוף, הראש למטה. בצע 6 בעיטות בתנוחה מאוזנת זו, ואז תנועת חתירה אחת ומעבר לצד השני ל-6 נוספות. ההשהיה בכל צד מחריצה את הסיבוב והתזמון."}},
+      {yt:"QImNLwVYEmc", name:{en:"Bilateral breathing (every 3)",he:"נשימה דו-צדדית (כל 3)"}, howto:{
+        en:"Breathe every 3 strokes so you alternate sides. It evens out a strong/weak side and builds a symmetric stroke. If every-3 feels breathless at first, alternate by length (breathe left one length, right the next) and build up.",
+        he:"נשום כל 3 תנועות כך שאתה מתחלף בין הצדדים. זה מאזן בין צד חזק לחלש ובונה חתירה סימטרית. אם כל-3 מקשה בהתחלה, התחלף לפי אורך בריכה (שמאלה אורך אחד, ימינה בהמשך) והגדל בהדרגה."}},
+    ],
+    wrist:[
+      {yt:"qp5wUg5obpM", name:{en:"Single-arm freestyle",he:"חתירה ביד אחת"}, howto:{
+        en:"Swim freestyle using one arm only; the other stays extended in front (or resting at your side). Focus on a clean catch and full pull on the working arm. Do a length on each arm — fins help you keep momentum. Great for evening out a dominant arm.",
+        he:"שחה חתירה עם יד אחת בלבד; השנייה מושטת קדימה (או צמודה לגוף). התמקד בתפיסה נקייה ומשיכה מלאה של היד הפעילה. בצע אורך בריכה לכל יד — סנפירים עוזרים לשמור על תנופה. מצוין לאיזון יד דומיננטית."}},
+      {yt:"1rKCME8HfJY", name:{en:"6-kick / 3-stroke switch",he:"6 בעיטות / 3 תנועות מעבר"}, howto:{
+        en:"Push off on your side, one arm extended, the other at your side, head down. Take 6 kicks, then one stroke and switch. The pause grooves the entry and the crossover timing between the two arms.",
+        he:"דחוף מהקיר על הצד, יד אחת מושטת והשנייה צמודה, הראש למטה. בצע 6 בעיטות, ואז תנועה אחת ומעבר. ההשהיה מחריצה את הכניסה ואת תזמון המעבר בין שתי הידיים."}},
+      {yt:"QImNLwVYEmc", name:{en:"Bilateral breathing (every 3)",he:"נשימה דו-צדדית (כל 3)"}, howto:{
+        en:"Breathe every 3 strokes to alternate sides. It balances left/right timing and stroke length between the arms, so one arm stops doing more of the work than the other.",
+        he:"נשום כל 3 תנועות כדי להתחלף בין הצדדים. זה מאזן תזמון ואורך תנועה בין הידיים, כך שיד אחת מפסיקה לעשות יותר מהעבודה."}},
+    ],
+  };
+
+  function drillsHTML(pl){
+    const lib=DRILLS[pl]||[]; if(!lib.length) return "";
+    const items=lib.map((d,i)=>{
+      const nm=d.name[lang]||d.name.en, ho=d.howto[lang]||d.howto.en;
+      return `<li><div class="dname">${esc(nm)}</div><div class="dacts">`+
+        `<button class="dbtn dwatch" data-pl="${pl}" data-i="${i}">${t("drillWatch")}</button>`+
+        `<button class="dbtn dhow">${t("drillHowto")}</button></div>`+
+        `<div class="dhowto" hidden>${esc(ho)}</div></li>`;
+    }).join("");
+    return `<div class="panel"><h2>${t("drillsLib")}</h2><ul class="drills">${items}</ul></div>`;
+  }
+  function schematicHTML(pl){
+    return `<div class="panel"><h2>${t("h_motion")}</h2><p class="hint">${t("hint_motion")[pl]}</p>`+
+      `<div class="ltr"><canvas id="schematic" style="height:170px"></canvas></div></div>`;
+  }
+
+  // ---- schematic animations, driven by the recorded traces ----
+  let animHandle=null;
+  function stopAnim(){ if(animHandle) cancelAnimationFrame(animHandle); animHandle=null; }
+  function startSchematic(p){
+    stopAnim();
+    const cv=$("schematic"); if(!cv) return;
+    const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=170;
+    cv.width=W*dpr; cv.height=H*dpr; const ctx=cv.getContext("2d");
+    const pl=active;
+    const rollS = pl==="wrist"?null:(p.traces&&p.traces.roll);
+    const pitchS = pl==="head"?(p.traces&&p.traces.pitch):null;
+    const rArm = pl==="wrist"?p.arms.R.traces.pitch:null;
+    const lArm = pl==="wrist"?p.arms.L.traces.pitch:null;
+    const N = pl==="wrist"?rArm.length:(rollS?rollS.length:0);
+    if(!N) return;
+    let i=0;
+    function frame(){
+      ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+      if(pl==="head") drawHead(ctx,W,H,(pitchS[i]||0),(rollS[i]||0));
+      else if(pl==="sacrum") drawBody(ctx,W,H,(rollS[i]||0));
+      else drawArms(ctx,W,H,(rArm[i]||0),(lArm[i]||0));
+      i=(i+3)%N;
+      animHandle=requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  function drawHead(ctx,W,H,pitch,roll){
+    const accent=cssv("--accent"),muted=cssv("--muted"),left=cssv("--left");
+    const cx=W*0.30,cy=H*0.46;
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(roll*Math.PI/180);
+    ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,0,32,0,2*Math.PI);ctx.stroke();
+    ctx.beginPath();ctx.arc(-32,0,5,0,2*Math.PI);ctx.arc(32,0,5,0,2*Math.PI);ctx.stroke();
+    ctx.fillStyle=accent;ctx.beginPath();ctx.arc(0,24,4,0,2*Math.PI);ctx.fill();
+    ctx.restore();
+    ctx.fillStyle=muted;ctx.font="11px "+cssv("--mono");ctx.textAlign="center";ctx.textBaseline="alphabetic";
+    ctx.fillText("roll "+(roll>=0?"+":"")+roll.toFixed(0)+"°",cx,H-8);
+    const cx2=W*0.70;
+    ctx.save();ctx.translate(cx2,cy);ctx.rotate(-pitch*Math.PI/180);
+    ctx.strokeStyle=left;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,0,28,0,2*Math.PI);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(26,0);ctx.lineTo(42,0);ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle=muted;ctx.fillText("pitch "+(pitch>=0?"+":"")+pitch.toFixed(0)+"°",cx2,H-8);
+  }
+  function drawBody(ctx,W,H,roll){
+    const accent=cssv("--accent"),muted=cssv("--muted");
+    const cx=W*0.5,hipY=H*0.76;
+    ctx.save();ctx.translate(cx,hipY);ctx.rotate(roll*Math.PI/180);
+    ctx.strokeStyle=accent;ctx.lineWidth=3;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-66);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-32,-58);ctx.lineTo(32,-58);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-22,2);ctx.lineTo(22,2);ctx.stroke();
+    ctx.beginPath();ctx.arc(0,-82,13,0,2*Math.PI);ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle=muted;ctx.font="11px "+cssv("--mono");ctx.textAlign="center";ctx.textBaseline="alphabetic";
+    ctx.fillText("body roll "+(roll>=0?"+":"")+roll.toFixed(0)+"°",cx,H-6);
+  }
+  function drawArms(ctx,W,H,pR,pL){
+    const right=cssv("--right"),left=cssv("--left"),muted=cssv("--muted"),line=cssv("--line");
+    const cy=H*0.40,sx=W*0.5,sw=64,armLen=62;
+    ctx.strokeStyle=line;ctx.lineWidth=3;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(sx-sw,cy);ctx.lineTo(sx+sw,cy);ctx.stroke();
+    ctx.beginPath();ctx.arc(sx,cy-15,10,0,2*Math.PI);ctx.stroke();
+    function arm(shX,pitch,color,dir){
+      ctx.save();ctx.translate(shX,cy);ctx.rotate((-pitch)*Math.PI/180);
+      ctx.strokeStyle=color;ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(dir*8,armLen);ctx.stroke();
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(dir*8,armLen,5,0,2*Math.PI);ctx.fill();
+      ctx.restore();
+    }
+    arm(sx+sw,pR,right,1); arm(sx-sw,pL,left,-1);
+    ctx.fillStyle=muted;ctx.font="11px "+cssv("--mono");ctx.textAlign="center";ctx.textBaseline="alphabetic";
+    ctx.fillText("R "+(pR>=0?"+":"")+pR.toFixed(0)+"°    L "+(pL>=0?"+":"")+pL.toFixed(0)+"°",sx,H-6);
+  }
+
+  // ---- video modal ----
+  function openVideo(yt,title){
+    $("videoTitle").textContent=title||"";
+    $("videoFrame").src="https://www.youtube.com/embed/"+yt+"?rel=0&autoplay=1&playsinline=1";
+    const op=$("videoOpen"); op.href="https://www.youtube.com/watch?v="+yt; op.textContent=t("drillOpenYt");
+    $("videoModal").hidden=false; document.addEventListener("keydown",onModalKey);
+  }
+  function closeVideo(){ $("videoModal").hidden=true; $("videoFrame").src="about:blank"; document.removeEventListener("keydown",onModalKey); }
+  function onModalKey(e){ if(e.key==="Escape") closeVideo(); }
+  $("videoModal").addEventListener("click",e=>{ if(e.target.hasAttribute("data-close")) closeVideo(); });
+  // delegated drill buttons (the #detail container persists across renders)
+  $("detail").addEventListener("click",e=>{
+    const w=e.target.closest(".dwatch");
+    if(w){ const d=DRILLS[w.dataset.pl][+w.dataset.i]; openVideo(d.yt, d.name[lang]||d.name.en); return; }
+    const h=e.target.closest(".dhow");
+    if(h){ const box=h.closest("li").querySelector(".dhowto"); box.hidden=!box.hidden;
+      h.textContent=(box.hidden?t("drillHowto"):"▴ "+t("drillHowto").slice(2)); }
+  });
+
   // -------- renderers --------
   function renderSacrum(p){
     const s=p.summary;
@@ -74416,10 +74604,11 @@
     const hl=analysisHeadline(p);
     const fh=hl?`<div class="fhead">${esc(hl)}</div>`:"";
     $("summary").innerHTML=`${fh}<div class="kpis">${r.summary}</div>`;
-    $("detail").innerHTML=`<details class="detail" open><summary>${t("seeFull")}</summary><div class="detail-body">${analysisHTML(p)}${r.detail}</div></details>`;
-    r.draw(); window._draw=r.draw;
+    $("detail").innerHTML=`<details class="detail" open><summary>${t("seeFull")}</summary>`+
+      `<div class="detail-body">${analysisHTML(p)}${r.detail}${schematicHTML(active)}${drillsHTML(active)}</div></details>`;
+    r.draw(); startSchematic(p); window._draw=r.draw; window._p=p;
   }
-  window.addEventListener("resize",()=>window._draw&&window._draw());
+  window.addEventListener("resize",()=>{ if(window._draw)window._draw(); if(window._p)startSchematic(window._p); });
 
   function classify(obj){
     if(obj.placement==="sacrum"||(obj.summary&&obj.summary.body_roll_amplitude_deg!=null)) return "sacrum";
