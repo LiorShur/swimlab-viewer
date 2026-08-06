@@ -84,6 +84,11 @@
   ul.coach .pt{font-size:14px}
   ul.coach .mchip{align-self:flex-start;font-family:var(--mono);font-size:11px;color:var(--muted);
     background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;direction:ltr}
+  .aibadge{font-size:10.5px;font-weight:600;color:var(--good);border:1px solid var(--good);
+    border-radius:20px;padding:1px 8px;margin:0 8px;vertical-align:middle;white-space:nowrap}
+  .actions{display:flex;flex-direction:column;gap:6px;margin:4px 0 4px}
+  .actions .act{font-size:14px}
+  #narratebtn[disabled]{opacity:.6;cursor:progress}
   .foot{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.6}
   .foot code{font-family:var(--mono);font-size:11.5px;direction:ltr}
 </style>
@@ -101,6 +106,7 @@
       <select id="pick"></select>
       <label class="btn" for="file" id="importlab"></label>
       <input type="file" id="file" accept="application/json,.json">
+      <button class="btn" id="narratebtn"></button>
     </div>
   </header>
 
@@ -125,6 +131,10 @@
       tag:"· multi-sensor swim analysis",
       subDefault:"Choose a sensor placement, pick a swimmer, or import a session.",
       swimmer:"Swimmer", import:"⬆ Import session…", langBtn:"עברית",
+      narrate:"✨ Narrate with AI", narrating:"Narrating…", aiBadge:"AI-generated",
+      tryThis:"Try this", drills:"Drills",
+      narrateFail:"Live narration failed — showing rule-based findings.",
+      narratePrompt:"Narration Worker URL (e.g. https://swimlab-narrate.<you>.workers.dev):",
       seeFull:"See the full analysis", coaching:"Coaching points",
       disclaimer:"Illustrative and hypothesis-based — not a validated finding.",
       headLink:"The head module also has AI narration + drills → ",
@@ -168,6 +178,10 @@
       tag:"· ניתוח שחייה רב-חיישני",
       subDefault:"בחר מיקום חיישן, בחר שחיין, או ייבא מפגש.",
       swimmer:"שחיין", import:"⬆ ייבוא מפגש…", langBtn:"English",
+      narrate:"✨ נתח עם AI", narrating:"מנתח…", aiBadge:"נוצר על-ידי AI",
+      tryThis:"נסה את זה", drills:"תרגילים",
+      narrateFail:"הניתוח החי נכשל — מוצגים ממצאים מבוססי-כללים.",
+      narratePrompt:"כתובת Worker לניתוח (למשל https://swimlab-narrate.<you>.workers.dev):",
       seeFull:"הצג את הניתוח המלא", coaching:"נקודות אימון",
       disclaimer:"להמחשה ומבוסס-השערה — לא ממצא מאומת.",
       headLink:"למודול הראש יש גם ניתוח AI ותרגילים → ",
@@ -205,6 +219,9 @@
       mMeanDp:"Δpitch ממוצע",mPeakRoll:"שיא סיבוב",mRatio:"יחס רול:פיץ׳",mAsym:"מדד אי-סימטריה",mVar:"שונות (סטיית תקן)",
     },
   };
+  // one-time capture of an optional shared-secret for the narration Worker
+  (function(){const k=new URLSearchParams(location.search).get("narrateKey");
+    if(k) localStorage.setItem("swimlab.narrateKey",k);})();
   let lang = localStorage.getItem("swimlab.lang") || "he";
   const t = k => (T[lang] && T[lang][k]!=null) ? T[lang][k] : (T.en[k]!=null?T.en[k]:k);
 
@@ -229,6 +246,8 @@
     $("picklab").textContent = t("swimmer");
     $("importlab").textContent = t("import");
     $("langbtn").textContent = "🌐 "+t("langBtn");
+    $("narratebtn").textContent = narrating ? t("narrating") : t("narrate");
+    $("narratebtn").disabled = narrating;
     $("foot").textContent = t("foot");
   }
   $("langbtn").addEventListener("click",()=>{ lang = lang==="he"?"en":"he"; localStorage.setItem("swimlab.lang",lang); render(); });
@@ -278,15 +297,66 @@
       `<div class="bar"><div class="l" style="width:${100*(L||0)/tot}%"></div><div class="r" style="width:${100*(R||0)/tot}%"></div></div>`+
       `<span class="cap" style="color:var(--right)">${fmt(R,1)} ${rLab}</span></div>`;
   }
-  function findingsHTML(p){
-    const f=(p.findings&&(p.findings[lang]||p.findings.en)); if(!f||!f.headline) return "";
-    const items=(f.coaching||[]).map(c=>`<li><span class="pt">${esc(c.point)}</span><span class="mchip">${esc(c.metric)}</span></li>`).join("");
-    const tail = (p.placement==="head" || (p.summary&&p.summary.mean_d_pitch_breath!=null))
-      ? `${t("headLink")}<a class="link" href="dashboard.html">${t("headLinkA")}</a>.` : t("aiLater");
+  function coachList(items, isDrill){
+    return (items||[]).map(c=>{
+      const main = isDrill ? esc(c.name)+" — "+esc(c.why) : esc(c.point);
+      const chip = isDrill ? "" : `<span class="mchip">${esc(c.metric)}</span>`;
+      return `<li><span class="pt">${main}</span>${chip}</li>`;
+    }).join("");
+  }
+  function isHeadP(p){ return p.placement==="head" || (p.summary&&p.summary.mean_d_pitch_breath!=null); }
+  function analysisHeadline(p){
+    const nar=p._nar&&(p._nar[lang]||p._nar.en);
+    if(nar&&nar.headline) return nar.headline;
+    const f=p.findings&&(p.findings[lang]||p.findings.en);
+    return (f&&f.headline)||"";
+  }
+  function analysisHTML(p){
+    const tail = isHeadP(p) ? `${t("headLink")}<a class="link" href="dashboard.html">${t("headLinkA")}</a>.` : t("aiLater");
+    const nar=p._nar&&(p._nar[lang]||p._nar.en);
+    if(nar&&nar.headline){
+      const acts=(nar.swimmer_actions||[]).map(a=>`<span class="act">• ${esc(a)}</span>`).join("");
+      const drills=(isHeadP(p)&&nar.drills&&nar.drills.length)
+        ? `<h2>${t("drills")}</h2><ul class="coach">${coachList(nar.drills,true)}</ul>`:"";
+      return `<div class="panel findings"><div class="f-head">${esc(nar.headline)}<span class="aibadge">${t("aiBadge")}${p._narModel?" · "+esc(p._narModel):""}</span></div>`+
+        `<p class="f-sum">${esc(nar.swimmer_summary)}</p><div class="actions">${acts}</div>`+
+        `<h2>${t("coaching")}</h2><p class="f-sum">${esc(nar.summary)}</p>`+
+        `<ul class="coach">${coachList(nar.corrections,false)}</ul>${drills}`+
+        `<p class="hint" style="margin-top:10px">${t("disclaimer")} ${isHeadP(p)?tail:""}</p></div>`;
+    }
+    const f=p.findings&&(p.findings[lang]||p.findings.en); if(!f||!f.headline) return "";
     return `<div class="panel findings"><div class="f-head">${esc(f.headline)}</div>`+
-      `<p class="f-sum">${esc(f.summary)}</p><h2>${t("coaching")}</h2><ul class="coach">${items}</ul>`+
+      `<p class="f-sum">${esc(f.summary)}</p><h2>${t("coaching")}</h2><ul class="coach">${coachList(f.coaching,false)}</ul>`+
       `<p class="hint" style="margin-top:10px">${t("disclaimer")} ${tail}</p></div>`;
   }
+
+  // ---- live AI narration (placement-agnostic) via the Worker ----
+  let narrating=false;
+  function narrateURL(){
+    if(window.SWIMLAB_NARRATE_URL) return window.SWIMLAB_NARRATE_URL;
+    const q=new URLSearchParams(location.search).get("narrate");
+    if(q){localStorage.setItem("swimlab.narrateUrl",q); return q;}
+    const saved=localStorage.getItem("swimlab.narrateUrl"); if(saved) return saved;
+    const entered=prompt(t("narratePrompt"),"");
+    if(entered){localStorage.setItem("swimlab.narrateUrl",entered.trim()); return entered.trim();}
+    return null;
+  }
+  async function narrateLive(){
+    if(narrating) return;
+    const url=narrateURL(); if(!url) return;
+    const p=BUNDLE[active].sessions[sel[active]];
+    narrating=true; applyChrome();
+    try{
+      const headers={"Content-Type":"application/json"};
+      const key=localStorage.getItem("swimlab.narrateKey"); if(key) headers["X-Narrate-Key"]=key;
+      const res=await fetch(url,{method:"POST",headers,body:JSON.stringify(p)});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error||("HTTP "+res.status));
+      p._nar=data.narratives||{}; p._narModel=data.model||"";
+      narrating=false; render();
+    }catch(e){ narrating=false; applyChrome(); alert(t("narrateFail")+" ("+e.message+")"); }
+  }
+  $("narratebtn").addEventListener("click", narrateLive);
 
   // -------- renderers --------
   function renderSacrum(p){
@@ -362,10 +432,10 @@
       (flags.length?flags.map(f=>`<span class="chip" style="color:var(--warn)">${esc(f)}</span>`).join(""):"");
     $("banner").textContent=t("banner")[active];
     const r=RENDER[active](p);
-    const f=p.findings&&(p.findings[lang]||p.findings.en);
-    const fh=(f&&f.headline)?`<div class="fhead">${esc(f.headline)}</div>`:"";
+    const hl=analysisHeadline(p);
+    const fh=hl?`<div class="fhead">${esc(hl)}</div>`:"";
     $("summary").innerHTML=`${fh}<div class="kpis">${r.summary}</div>`;
-    $("detail").innerHTML=`<details class="detail" open><summary>${t("seeFull")}</summary><div class="detail-body">${findingsHTML(p)}${r.detail}</div></details>`;
+    $("detail").innerHTML=`<details class="detail" open><summary>${t("seeFull")}</summary><div class="detail-body">${analysisHTML(p)}${r.detail}</div></details>`;
     r.draw(); window._draw=r.draw;
   }
   window.addEventListener("resize",()=>window._draw&&window._draw());

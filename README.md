@@ -33,6 +33,16 @@ into a session file by the engine (or a small service) — that's the one docume
 hook for real-sensor data. The individual pages (`dashboard.html` for the
 narration-rich head view, `sacrum.html`) still build the same way.
 
+**Findings & AI narration for every placement.** Each placement's expander opens
+with a plain-language **headline + summary + grounded coaching points** — the same
+shape as the head dashboard. These are rule-based (deterministic, no API) so they
+work offline; the **✨ Narrate with AI** button upgrades them to LLM prose for the
+active placement via the Cloudflare Worker (`worker/`, now placement-aware). Point
+the app at your Worker with `?narrate=<url>` (saved to `localStorage`) or by
+setting `window.SWIMLAB_NARRATE_URL`. Everything is **bilingual (English /
+Hebrew)** with a 🌐 toggle (default Hebrew, RTL); one narration call returns both
+languages so toggling is instant.
+
 ## How it works
 
 ```

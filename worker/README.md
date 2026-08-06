@@ -12,6 +12,13 @@ the loop here. As with `--narrate`, Claude only rewrites the interpretation
 prose, from a fixed fact table. `narrate-worker.js` is a straight port of
 `src/narrate.py`; keep the two in sync.
 
+**Placement-aware.** The Worker accepts a session payload for **any** placement —
+head, sacrum, or wrist — detects which from the payload shape, and picks the
+matching fact table + system-prompt guide + output schema (only the head asks for
+drills; the others give plain swimmer actions). The holistic app (`index.html`)
+calls it from its **✨ Narrate with AI** button for whichever placement is active;
+the head dashboard still calls it exactly as before.
+
 Each narration returns **two layers** from the one call: a plain **swimmer
 layer** (`headline`, `swimmer_summary`, `swimmer_actions`) for the summary-first
 card the page shows by default, and the detailed **coach layer** (`summary`,
