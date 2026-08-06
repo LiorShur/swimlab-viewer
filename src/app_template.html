@@ -126,7 +126,7 @@
       <label class="lab" for="pick" id="picklab"></label>
       <select id="pick"></select>
       <label class="btn" for="file" id="importlab"></label>
-      <input type="file" id="file" accept="application/json,.json">
+      <input type="file" id="file" accept="application/json,.json,text/csv,.csv" multiple>
       <button class="btn" id="narratebtn"></button>
     </div>
   </header>
@@ -149,6 +149,10 @@
   </div>
 </div>
 
+<!-- Optional: the hosted app's Firebase web config (copy firebase-config.example.js
+     -> firebase-config.js and fill in). Absent for the offline dashboard artifacts,
+     where the 404 is harmless and the app falls back to the Worker / rule-based. -->
+<script src="firebase-config.js" onerror="void 0"></script>
 <script type="application/json" id="data">__DATA__</script>
 <script>
 (function(){
@@ -165,6 +169,10 @@
       tryThis:"Try this", drills:"Drills",
       narrateFail:"Live narration failed — showing rule-based findings.",
       narratePrompt:"Narration Worker URL (e.g. https://swimlab-narrate.<you>.workers.dev):",
+      processing:"Processing recordings on the backend…",
+      needBackend:"Raw DOT recordings need the processing backend. Add a firebase-config.js (see functions/README.md) to enable it; meanwhile you can import an exported session JSON.",
+      csvUnrecognised:"Couldn't tell each CSV's placement/pose. Name them like head/trial.csv, sacrum/t0a.csv, wrist_l/t0b.csv — placement (head|sacrum|wrist_l|wrist_r) + trial|t0a|t0b.",
+      processedOk:"Processed on the backend.",
       h_motion:"Motion", drillsLib:"Drills to try", drillWatch:"▶ Watch", drillHowto:"▾ How to",
       modalClose:"Close", drillOpenYt:"Open on YouTube ↗",
       hint_motion:{head:"A simple schematic driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
@@ -174,7 +182,7 @@
       disclaimer:"Illustrative and hypothesis-based — not a validated finding.",
       headLink:"The head module also has AI narration + drills → ",
       headLinkA:"open full head dashboard", aiLater:"AI narration can layer richer prose on top when configured.",
-      foot:"Synthetic pilot data — one generate_swim() body per swimmer, sampled by a virtual sensor at the chosen placement and run through the matching swimlab module (head / sacrum / wrist). Every number is scored against known ground truth in the engine's tests. A static page can't run the Python pipeline, so Import loads an exported session file; raw Movella DOT files need the engine (or a small service) to become one. Validate on real recordings when the hardware lands.",
+      foot:"Synthetic pilot data — one generate_swim() body per swimmer, sampled by a virtual sensor at the chosen placement and run through the matching swimlab module (head / sacrum / wrist). Every number is scored against known ground truth in the engine's tests. A static page can't run the Python pipeline itself, so Import either loads an exported session file or, when the processing backend is configured, sends raw Movella DOT recordings (CSV) to it and renders the result. Validate on real recordings when the hardware lands.",
       tab:{sacrum:"Sacrum",wrist:"Wrist L/R",head:"Head"}, seg:{pelvis:"pelvis",forearms:"forearms",skull:"skull"},
       banner:{sacrum:"Sacrum (pelvis): whole-body roll + push-offs → lengths, distance, stroke count, tempo, L/R roll symmetry.",
         wrist:"Wrist (forearm L+R): per-arm stroke phases from forearm pitch → stroke count/rate, plus the L/R symmetry fusion metric.",
@@ -217,6 +225,10 @@
       tryThis:"נסה את זה", drills:"תרגילים",
       narrateFail:"הניתוח החי נכשל — מוצגים ממצאים מבוססי-כללים.",
       narratePrompt:"כתובת Worker לניתוח (למשל https://swimlab-narrate.<you>.workers.dev):",
+      processing:"מעבד הקלטות בשרת…",
+      needBackend:"הקלטות DOT גולמיות דורשות שרת עיבוד. הוסף firebase-config.js (ראה functions/README.md) כדי להפעיל אותו; בינתיים אפשר לייבא קובץ מפגש JSON מיוצא.",
+      csvUnrecognised:"לא ניתן לזהות את המיקום/התנוחה של כל CSV. תן שמות כמו head/trial.csv, sacrum/t0a.csv, wrist_l/t0b.csv — מיקום (head|sacrum|wrist_l|wrist_r) + trial|t0a|t0b.",
+      processedOk:"עובד בשרת.",
       h_motion:"תנועה", drillsLib:"תרגילים לתרגול", drillWatch:"▶ צפה", drillHowto:"▾ איך",
       modalClose:"סגור", drillOpenYt:"פתח ביוטיוב ↗",
       hint_motion:{head:"סכמה פשוטה המונעת מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
@@ -226,7 +238,7 @@
       disclaimer:"להמחשה ומבוסס-השערה — לא ממצא מאומת.",
       headLink:"למודול הראש יש גם ניתוח AI ותרגילים → ",
       headLinkA:"פתח את לוח הראש המלא", aiLater:"ניתוח AI יכול להוסיף ניסוח עשיר יותר כשהוא מוגדר.",
-      foot:"נתוני פיילוט סינתטיים — גוף generate_swim() אחד לכל שחיין, שנדגם על-ידי חיישן וירטואלי במיקום הנבחר והורץ דרך מודול swimlab המתאים (ראש / אגן / פרק יד). כל מספר נבדק מול אמת-ידועה בבדיקות המנוע. עמוד סטטי אינו יכול להריץ את צנרת ה-Python, ולכן הייבוא טוען קובץ מפגש מיוצא; קבצי Movella DOT גולמיים צריכים לעבור דרך המנוע (או שירות קטן). אמת מול הקלטות אמיתיות כשהחומרה תגיע.",
+      foot:"נתוני פיילוט סינתטיים — גוף generate_swim() אחד לכל שחיין, שנדגם על-ידי חיישן וירטואלי במיקום הנבחר והורץ דרך מודול swimlab המתאים (ראש / אגן / פרק יד). כל מספר נבדק מול אמת-ידועה בבדיקות המנוע. עמוד סטטי אינו יכול להריץ את צנרת ה-Python בעצמו, ולכן הייבוא טוען קובץ מפגש מיוצא, או — כששרת העיבוד מוגדר — שולח אליו הקלטות Movella DOT גולמיות (CSV) ומציג את התוצאה. אמת מול הקלטות אמיתיות כשהחומרה תגיע.",
       tab:{sacrum:"אגן",wrist:"פרקי יד",head:"ראש"}, seg:{pelvis:"אגן",forearms:"אמות",skull:"גולגולת"},
       banner:{sacrum:"אגן: סיבוב גוף מלא + דחיפות קיר → אורכים, מרחק, מספר תנועות, טמפו, סימטריית סיבוב ימין/שמאל.",
         wrist:"פרק יד (אמה ימין+שמאל): שלבי משיכה לכל יד מזווית האמה → מספר/קצב תנועות, ומדד סימטריית ימין/שמאל.",
@@ -383,8 +395,20 @@
   }
   async function narrateLive(){
     if(narrating) return;
-    const url=narrateURL(); if(!url) return;
     const p=BUNDLE[active].sessions[sel[active]];
+    // Preferred path: the deployed Firebase `narrate` callable (no worker URL,
+    // the Anthropic key is a server secret gated by the account in Phase C).
+    if(window.SwimBackend && window.SwimBackend.narrate){
+      narrating=true; applyChrome();
+      try{
+        const data=await window.SwimBackend.narrate(p, p.placement||active);
+        p._nar=data.narratives||{}; p._narModel=data.model||"";
+        narrating=false; render();
+      }catch(e){ narrating=false; applyChrome(); alert(t("narrateFail")+" ("+(e.message||e)+")"); }
+      return;
+    }
+    // Fallback: the standalone Cloudflare narration Worker (offline / no backend).
+    const url=narrateURL(); if(!url) return;
     narrating=true; applyChrome();
     try{
       const headers={"Content-Type":"application/json"};
@@ -635,22 +659,116 @@
     if(obj.summary&&obj.summary.mean_d_pitch_breath!=null) return "head";
     return null;
   }
-  $("file").addEventListener("change",async e=>{
-    const file=e.target.files[0]; if(!file) return;
+  // Ingest a processed session bundle (the output of the backend or an export).
+  function ingestBundle(obj,srcName){
+    let added=0,firstP=null;
+    const ingest=(k,payload)=>{const pl=classify(payload); if(!pl) return;
+      if(!BUNDLE[pl]){BUNDLE[pl]={sessions:{},default:k}; if(!ORDER.includes(pl))ORDER.unshift(pl);}
+      const key=k+" (imported)"; BUNDLE[pl].sessions[key]=payload; sel[pl]=key; added++; firstP=pl;};
+    if(obj.placements){for(const pk of Object.keys(obj.placements)){const b=obj.placements[pk];for(const k of Object.keys(b.sessions||{}))ingest(k,b.sessions[k]);}}
+    else if(obj.sessions){for(const k of Object.keys(obj.sessions))ingest(k,obj.sessions[k]);}
+    else ingest(obj.swimmer_id||srcName,obj);
+    if(added){active=firstP; render();}
+    return added;
+  }
+
+  // Group raw DOT CSVs into per-placement recordings for `process_session`,
+  // reading placement + pose from each file's name/path (head/trial.csv,
+  // sacrum/t0a.csv, wrist_l/t0b.csv, …). Returns {recordings, unmatched}.
+  const _PLACEMENTS_RE=/(wrist_l|wrist_r|head|sacrum|ankle_l|ankle_r|uparm_l|uparm_r)/i;
+  async function csvsToRecordings(files){
+    const groups={},unmatched=[];
+    for(const f of files){
+      const name=(f.webkitRelativePath||f.name||"").toLowerCase();
+      const pm=name.match(_PLACEMENTS_RE);
+      const role=/t0a/.test(name)?"t0a":/t0b/.test(name)?"t0b":/trial|swim|t7/.test(name)?"trial":null;
+      if(!pm||!role){unmatched.push(f.name); continue;}
+      const pl=pm[1]; (groups[pl]=groups[pl]||{placement_id:pl})[role]=await f.text();
+    }
+    const recordings=Object.values(groups).filter(g=>g.trial&&g.t0a&&g.t0b);
+    for(const g of Object.values(groups)) if(!(g.trial&&g.t0a&&g.t0b)) unmatched.push(g.placement_id+" (needs trial+t0a+t0b)");
+    return {recordings,unmatched};
+  }
+
+  async function processRecordings(request){
+    if(!(window.SwimBackend&&window.SwimBackend.processSession)){ alert(t("needBackend")); return; }
+    const recordings=request.recordings||(request.data&&request.data.recordings)||[];
+    const pool=request.pool_length_m||(request.data&&request.data.pool_length_m)||25;
+    if(!recordings.length){ alert(t("needBackend")); return; }
+    const prev=$("importlab").textContent; $("importlab").textContent=t("processing");
     try{
-      const obj=JSON.parse(await file.text()); let added=0,firstP=null;
-      const ingest=(k,payload)=>{const pl=classify(payload); if(!pl) return;
-        if(!BUNDLE[pl]){BUNDLE[pl]={sessions:{},default:k}; if(!ORDER.includes(pl))ORDER.unshift(pl);}
-        const key=k+" (imported)"; BUNDLE[pl].sessions[key]=payload; sel[pl]=key; added++; firstP=pl;};
-      if(obj.placements){for(const pk of Object.keys(obj.placements)){const b=obj.placements[pk];for(const k of Object.keys(b.sessions||{}))ingest(k,b.sessions[k]);}}
-      else if(obj.sessions){for(const k of Object.keys(obj.sessions))ingest(k,obj.sessions[k]);}
-      else ingest(obj.swimmer_id||file.name,obj);
-      if(added){active=firstP; render();} else alert("Not a recognised swimlab session payload.");
-    }catch(err){alert("Could not read file: "+err.message);}
+      const bundle=await window.SwimBackend.processSession(recordings,pool);
+      const n=ingestBundle(bundle,"session");
+      if(!n) alert("Not a recognised swimlab session payload.");
+    }catch(err){ alert("Processing failed ("+(err.message||err)+")"); }
+    finally{ $("importlab").textContent=prev; }
+  }
+
+  $("file").addEventListener("change",async e=>{
+    const files=[...e.target.files]; if(!files.length) return;
     e.target.value="";
+    try{
+      const csvs=files.filter(f=>/\.csv$/i.test(f.name)||f.type==="text/csv");
+      if(csvs.length){
+        // Raw DOT recordings -> backend `process_session`.
+        const {recordings,unmatched}=await csvsToRecordings(csvs);
+        if(!recordings.length){ alert(t("csvUnrecognised")+(unmatched.length?("\n\n"+unmatched.join(", ")):"")); return; }
+        await processRecordings({recordings});
+        if(unmatched.length) console.warn("[swimlab] unmatched CSVs:",unmatched);
+        return;
+      }
+      const obj=JSON.parse(await files[0].text());
+      // A recordings manifest (from tools/make_sample_recordings.py) -> backend.
+      if(obj.recordings||(obj.data&&obj.data.recordings)){ await processRecordings(obj); return; }
+      // Otherwise a processed session/bundle payload -> ingest directly.
+      if(!ingestBundle(obj,obj.swimmer_id||files[0].name)) alert("Not a recognised swimlab session payload.");
+    }catch(err){alert("Could not read file: "+err.message);}
   });
 
   render();
+})();
+</script>
+
+<!-- Phase B: connect to the deployed swimlab backend (Firebase callable
+     functions), so narration and raw-DOT processing use a server secret with no
+     worker URL. Active only when firebase-config.js set window.SWIMLAB_FIREBASE_CONFIG
+     (the hosted app); the offline artifacts skip this entirely. -->
+<script type="module">
+(async () => {
+  const cfg = window.SWIMLAB_FIREBASE_CONFIG;
+  if (!cfg) return;                       // offline artifact / not configured
+  const V = window.SWIMLAB_FIREBASE_SDK_VERSION || "10.12.0";
+  try {
+    const { initializeApp } = await import(
+      `https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import(
+      `https://www.gstatic.com/firebasejs/${V}/firebase-functions.js`);
+    const app = initializeApp(cfg);
+    const region = cfg.functionsRegion || "us-central1";
+    const fns = getFunctions(app, region);
+    if (window.SWIMLAB_FUNCTIONS_EMULATOR) {
+      const [host, port] = String(window.SWIMLAB_FUNCTIONS_EMULATOR).split(":");
+      connectFunctionsEmulator(fns, host || "localhost", Number(port) || 5001);
+    }
+    const _process = httpsCallable(fns, "process_session", { timeout: 300000 });
+    const _narrate = httpsCallable(fns, "narrate", { timeout: 120000 });
+    window.SwimBackend = {
+      region,
+      // recordings: [{placement_id, trial, t0a, t0b, ...}] -> dashboard bundle
+      async processSession(recordings, poolLengthM = 25) {
+        const { data } = await _process({ recordings, pool_length_m: poolLengthM });
+        return data;
+      },
+      // one placement's payload -> {narratives:{en,he}, model, placement}
+      async narrate(payload, placement) {
+        const { data } = await _narrate({ payload, placement });
+        return data;
+      },
+    };
+    document.dispatchEvent(new CustomEvent("swimbackend:ready", { detail: { region } }));
+  } catch (e) {
+    console.warn("[swimlab] Firebase backend unavailable:", (e && e.message) || e);
+  }
 })();
 </script>
 </body>

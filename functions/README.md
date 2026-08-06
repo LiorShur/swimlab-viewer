@@ -105,21 +105,46 @@ firebase emulators:start --only functions,firestore,storage   # local
 firebase deploy --only functions,firestore,storage            # live
 ```
 
-## How the app calls it (Phase B)
+## How the app calls it (Phase B — wired)
 
-The web/Capacitor app uses the Firebase JS SDK:
+The hosted web app (`../index.html`, built from `../src/app_template.html`) now
+talks to these functions directly. To turn it on, drop your Firebase **web
+config** next to the app:
 
-```js
-import { getFunctions, httpsCallable } from "firebase/functions";
-const fns = getFunctions();
-const { data } = await httpsCallable(fns, "process_session")({ recordings, pool_length_m: 25 });
-// data == the dashboard bundle the app already renders
-const nar = await httpsCallable(fns, "narrate")({ payload, placement: "sacrum" });
+```bash
+cp ../firebase-config.example.js ../firebase-config.js   # git-ignored
+# paste Project Settings -> Your apps -> Web app -> SDK config into it
 ```
 
-This replaces the Cloudflare narration worker + its URL prompt: the key is a
-server secret and access is gated by Firebase Auth (free vs paid enforced on the
-account in Phase C).
+The app loads `/firebase-config.js` before boot; when present it lazy-imports the
+Firebase JS SDK from gstatic and exposes `window.SwimBackend`:
+
+```js
+// what the app's bootstrap sets up (src/app_template.html):
+const fns = getFunctions(app, cfg.functionsRegion || "us-central1");
+window.SwimBackend = {
+  processSession: (recordings, poolLengthM = 25) =>
+    httpsCallable(fns, "process_session")({ recordings, pool_length_m: poolLengthM }).then(r => r.data),
+  narrate: (payload, placement) =>
+    httpsCallable(fns, "narrate")({ payload, placement }).then(r => r.data),
+};
+```
+
+With that in place:
+
+- **Narrate ✨** calls `narrate` server-side (no worker URL, no client key). With
+  no config it falls back to the Cloudflare worker / rule-based findings.
+- **Import** accepts raw Movella DOT recordings — a `request.json` manifest (from
+  `tools/make_sample_recordings.py`) or a set of `*.csv` named by placement/pose
+  (`head/trial.csv`, `sacrum/t0a.csv`, `wrist_l/t0b.csv`, …) — and runs them
+  through `process_session`, then renders the returned bundle. Exported session
+  JSON still imports directly.
+
+For local dev against the emulator, set in `firebase-config.js`:
+`window.SWIMLAB_FUNCTIONS_EMULATOR = "localhost:5001";`
+
+The key stays a server secret; free vs paid is enforced on the account in Phase C
+(Firebase Auth).
 
 ## Notes
 
