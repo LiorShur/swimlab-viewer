@@ -68,14 +68,30 @@ curl -X POST \
 
 ## Deploy / emulate
 
-The engine must be importable in the runtime. Vendor it first (git-ignored):
+**1. Create the Python venv (required).** Firebase runs Python functions from a
+virtualenv at `functions/venv`; the CLI does not always create it (and fails with
+`spawn ...venv\Scripts\activate.bat ENOENT` if missing). Create it with a Python
+that matches `firebase.json` `runtime` (currently `python311`):
 
 ```bash
 cd functions
+python -m venv venv                       # py -3.11 -m venv venv  if 3.11 isn't default
+source venv/Scripts/activate              # Windows/Git Bash;  venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+```
+
+If your Python is 3.12, either use 3.11 here or set `firebase.json` →
+`"runtime": "python312"` — the venv Python and the runtime pin must agree.
+
+**2. Vendor the engine** so the function can import `swimlab` (git-ignored). Use
+the engine branch that has the multi-placement modules
+(`claude/synth-head-imu-generator-3tljlr`), not `main`:
+
+```bash
 ./vendor_swimlab.sh /path/to/swimlab     # copies swimlab/ + config.yaml -> vendor/
 ```
 
-Set the Anthropic key as a **secret** (never in code or client):
+**3.** Set the Anthropic key as a **secret** (never in code or client):
 
 ```bash
 firebase functions:secrets:set ANTHROPIC_API_KEY
