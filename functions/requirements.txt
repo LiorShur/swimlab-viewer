@@ -1,0 +1,10 @@
+# Firebase Cloud Functions (Python, 2nd gen) — swimlab backend
+firebase-functions>=0.4.2
+firebase-admin>=6.5.0
+anthropic>=0.40.0
+# swimlab engine deps (the engine itself is vendored into ./vendor by
+# vendor_swimlab.sh — git-ignored — so the runtime can import it)
+polars>=1.0.0
+scipy>=1.11.0
+numpy>=1.26.0
+pyyaml>=6.0
