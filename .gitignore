@@ -10,3 +10,8 @@ prev_*.png
 # Phase B: the hosted app's real Firebase web config (copy from the .example)
 firebase-config.js
 .firebaserc
+
+# Phase C: functions environment (copy from functions/.env.example)
+functions/.env
+functions/.env.*
+!functions/.env.example

@@ -21,12 +21,39 @@ functions/
 
 | Function | Tier | In | Out |
 |---|---|---|---|
-| `process_session` | free | `{recordings: [{placement_id, trial, t0a, t0b, ...}], pool_length_m?}` | `{placements: {head,sacrum,wrist}, default_placement}` |
-| `narrate` | paid | `{payload, placement?}` | `{narratives: {en, he}, model, placement}` |
+| `process_session` | free | `{recordings: [{placement_id, trial, t0a, t0b, ...}], pool_length_m?, swim_id?}` | `{placements: {head,sacrum,wrist}, default_placement, saved?}` |
+| `narrate` | paid* | `{payload, placement?}` | `{narratives: {en, he}, model, placement, tier}` |
+| `set_tier` | admin | `{uid, tier: 'free'\|'paid'}` | `{uid, tier}` |
 
 Each recording's `trial`/`t0a`/`t0b` is a **Custom-Mode-5 CSV** — inline text, or
 a `gs://` Storage path (large real files live in Storage; `process_session`
 downloads them). `wrist_l` + `wrist_r` are fused into one `wrist` payload.
+
+### Accounts & entitlements (Phase C)
+
+- **Auth is attributed, not required.** Anonymous/unauthenticated calls still
+  work (the demo + smoke path). When the caller is signed in **and** passes a
+  `swim_id`, `process_session` saves the swim to their account via the Admin SDK:
+  the full bundle to Storage `users/{uid}/swims/{swimId}/bundle.json`, and a
+  summary + raw refs to Firestore `users/{uid}/swims/{swimId}` (see
+  `../firestore.rules` and `../docs/app-architecture.md §3a`). The response gains
+  `saved: {swim_id, bundlePath}`.
+- **\*Soft gate.** `narrate` resolves the caller's tier from
+  `users/{uid}/private/entitlement` (minting `free` on first use). With
+  `FREEMIUM_ENFORCED=false` (default) everyone may narrate; set it to `true` to
+  enforce — free callers then get `PERMISSION_DENIED` + `{reason:"upgrade_required"}`.
+  Entitlement is server-authoritative; the client can't write it.
+- **`set_tier`** flips a user free↔paid for testing (caller must be in the
+  `ADMIN_UIDS` env list). Replaced by a billing webhook later. You can also flip
+  it by hand in the Firestore console (owner writes bypass rules).
+
+Env (set on the functions, e.g. via `firebase functions:config` successor —
+`.env` files or `options.set_global_options`, or the console):
+
+```
+FREEMIUM_ENFORCED=false        # true => enforce the paywall
+ADMIN_UIDS=<your-uid>[,<uid>]  # who may call set_tier
+```
 
 ## Test locally (no Firebase)
 

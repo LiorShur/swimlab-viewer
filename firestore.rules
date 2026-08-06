@@ -1,12 +1,39 @@
 rules_version = '2';
-// Each user reads/writes only their own subtree. Processing/narration run in
-// Cloud Functions (Admin SDK) and bypass these rules; the client is scoped here.
+
+// Data model (Phase C):
+//   users/{uid}                      profile — client-owned (displayName, locale)
+//   users/{uid}/private/entitlement  {tier: 'free'|'paid'} — SERVER-written only
+//   users/{uid}/swims/{swimId}       processed dashboard bundle — SERVER-written only
+//
+// Processing/narration run in Cloud Functions (Admin SDK), which bypass these
+// rules. The client is scoped to its own subtree, and — critically for the
+// freemium gate — can NOT write its own entitlement or forge a swim bundle.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+      // Profile doc: the user manages their own harmless fields only.
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['displayName', 'locale', 'createdAt', 'updatedAt']);
+      allow delete: if false;
+
+      // Entitlement (free vs paid): readable by the user, written only by the
+      // backend (Admin SDK). A client can never grant itself 'paid'.
+      match /private/{doc} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // Processed swims: readable by the user, written only by process_session
+      // (Admin SDK). The client uploads raw recordings to Storage, not here.
+      match /swims/{swimId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
     }
   }

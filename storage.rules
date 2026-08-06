@@ -1,9 +1,19 @@
 rules_version = '2';
-// Raw recordings live under users/{uid}/... — private to that user.
+
+// Raw Movella DOT recordings, private to each user:
+//   users/{uid}/raw/{swimId}/{placement}/{pose}.csv
+// The client uploads raw CSVs here (keeping large files out of the callable),
+// then passes the gs:// paths to process_session, which reads them with the
+// Admin SDK (Admin bypasses these rules) and writes the processed bundle to
+// Firestore. Uploads are capped and must be CSV.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 64 * 1024 * 1024
+        && (request.resource.contentType.matches('text/csv')
+            || request.resource.contentType.matches('application/octet-stream'));
     }
   }
 }

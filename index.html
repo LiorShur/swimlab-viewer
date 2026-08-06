@@ -112,6 +112,42 @@
   .vframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .vopen{display:block;padding:10px 14px;font-size:12.5px;color:var(--accent);text-decoration:none}
   .vopen:hover{text-decoration:underline}
+  /* auth + account + history */
+  .authbox{width:min(380px,92vw)}
+  .authbody{padding:16px 18px 20px;display:flex;flex-direction:column;gap:10px}
+  .gbtn,.aprimary{border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+  .gbtn{background:#fff;color:#1a2028;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:9px}
+  .gbtn:hover{border-color:var(--accent)}
+  .gbtn .gg{font-weight:700;font-family:var(--sans);color:#4285F4}
+  .aor{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:2px 0}
+  .aor::before,.aor::after{content:"";flex:1;height:1px;background:var(--line)}
+  .ainp{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;font-size:14px;font-family:var(--sans);direction:ltr}
+  .ainp:focus{outline:none;border-color:var(--accent)}
+  .aprimary{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+  .aprimary:hover{filter:brightness(1.06)}
+  .aerr{font-size:12.5px;color:var(--left);background:var(--panel2);border:1px solid var(--line);
+    border-radius:7px;padding:8px 10px}
+  .aerr[hidden]{display:none}
+  .atoggle{font-size:12.5px;color:var(--muted);text-align:center;margin-top:2px}
+  .histbody{padding:6px 8px 12px;max-height:64vh;overflow:auto}
+  ul.hist{list-style:none;padding:0;margin:0}
+  ul.hist li{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 12px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px}
+  ul.hist li:hover{background:var(--panel2)}
+  ul.hist li:last-child{border-bottom:none}
+  ul.hist .hmeta{display:flex;flex-direction:column;gap:3px;min-width:0}
+  ul.hist .hname{font-size:14px;font-weight:600}
+  ul.hist .hsub{font-size:12px;color:var(--muted)}
+  ul.hist .hpl{font-size:11px;color:var(--muted);font-family:var(--mono);direction:ltr}
+  .histempty{padding:22px 14px;color:var(--muted);font-size:13px;text-align:center}
+  .upsell{border:1px solid var(--good);background:var(--panel2);border-radius:10px;padding:12px 14px;margin:6px 0}
+  .upsell .ut{font-weight:660;font-size:14px;margin-bottom:3px}
+  .upsell .us{font-size:12.5px;color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:60;
+    background:var(--panel);border:1px solid var(--good);color:var(--text);
+    padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .toast[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -128,6 +164,8 @@
       <label class="btn" for="file" id="importlab"></label>
       <input type="file" id="file" accept="application/json,.json,text/csv,.csv" multiple>
       <button class="btn" id="narratebtn"></button>
+      <button class="btn" id="historybtn" hidden></button>
+      <button class="btn" id="accountbtn" hidden></button>
     </div>
   </header>
 
@@ -148,6 +186,32 @@
     <a id="videoOpen" class="vopen" target="_blank" rel="noopener"></a>
   </div>
 </div>
+
+<div id="authModal" class="vmodal" hidden>
+  <div class="vbackdrop" data-close-auth></div>
+  <div class="vbox authbox" role="dialog" aria-modal="true">
+    <div class="vbar"><span id="authTitle"></span><button class="vclose" data-close-auth aria-label="close">✕</button></div>
+    <div class="authbody">
+      <button class="gbtn" id="googleBtn"></button>
+      <div class="aor"><span id="authOr"></span></div>
+      <input class="ainp" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <input class="ainp" id="authPass" type="password" autocomplete="current-password" placeholder="••••••••">
+      <div class="aerr" id="authErr" hidden></div>
+      <button class="aprimary" id="authSubmit"></button>
+      <div class="atoggle"><span id="authToggleTxt"></span> <a class="link" id="authToggle" href="#"></a></div>
+    </div>
+  </div>
+</div>
+
+<div id="histModal" class="vmodal" hidden>
+  <div class="vbackdrop" data-close-hist></div>
+  <div class="vbox" role="dialog" aria-modal="true">
+    <div class="vbar"><span id="histTitle"></span><button class="vclose" data-close-hist aria-label="close">✕</button></div>
+    <div class="histbody" id="histBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
 
 <!-- Optional: the hosted app's Firebase web config (copy firebase-config.example.js
      -> firebase-config.js and fill in). Absent for the offline dashboard artifacts,
@@ -74154,6 +74218,18 @@
       needBackend:"Raw DOT recordings need the processing backend. Add a firebase-config.js (see functions/README.md) to enable it; meanwhile you can import an exported session JSON.",
       csvUnrecognised:"Couldn't tell each CSV's placement/pose. Name them like head/trial.csv, sacrum/t0a.csv, wrist_l/t0b.csv — placement (head|sacrum|wrist_l|wrist_r) + trial|t0a|t0b.",
       processedOk:"Processed on the backend.",
+      signIn:"↳ Sign in", signOut:"Sign out", history:"⌛ History",
+      histTitle:"Your swims", histLoading:"Loading…",
+      histEmpty:"No saved swims yet. Import a session while signed in and it's saved here.",
+      histLoadFail:"Couldn't load that swim.",
+      authSignInTitle:"Sign in", authRegisterTitle:"Create account",
+      googleBtn:"Continue with Google", authOr:"or",
+      authSubmitSignIn:"Sign in", authSubmitRegister:"Create account",
+      toRegisterTxt:"Need an account?", toRegisterLink:"Create one",
+      toSignInTxt:"Have an account?", toSignInLink:"Sign in",
+      savedToAccount:"Saved to your account ✓",
+      upsellDenied:"AI narration is a paid feature — upgrade to unlock it.",
+      accountTitle:"Account", authNeedBoth:"Email and password required.",
       h_motion:"Motion", drillsLib:"Drills to try", drillWatch:"▶ Watch", drillHowto:"▾ How to",
       modalClose:"Close", drillOpenYt:"Open on YouTube ↗",
       hint_motion:{head:"A simple schematic driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
@@ -74210,6 +74286,18 @@
       needBackend:"הקלטות DOT גולמיות דורשות שרת עיבוד. הוסף firebase-config.js (ראה functions/README.md) כדי להפעיל אותו; בינתיים אפשר לייבא קובץ מפגש JSON מיוצא.",
       csvUnrecognised:"לא ניתן לזהות את המיקום/התנוחה של כל CSV. תן שמות כמו head/trial.csv, sacrum/t0a.csv, wrist_l/t0b.csv — מיקום (head|sacrum|wrist_l|wrist_r) + trial|t0a|t0b.",
       processedOk:"עובד בשרת.",
+      signIn:"↳ התחברות", signOut:"התנתקות", history:"⌛ היסטוריה",
+      histTitle:"השחיות שלך", histLoading:"טוען…",
+      histEmpty:"אין עדיין שחיות שמורות. ייבא מפגש בזמן שאתה מחובר והוא יישמר כאן.",
+      histLoadFail:"לא ניתן לטעון את השחייה.",
+      authSignInTitle:"התחברות", authRegisterTitle:"יצירת חשבון",
+      googleBtn:"המשך עם Google", authOr:"או",
+      authSubmitSignIn:"התחבר", authSubmitRegister:"צור חשבון",
+      toRegisterTxt:"אין לך חשבון?", toRegisterLink:"צור חשבון",
+      toSignInTxt:"יש לך חשבון?", toSignInLink:"התחבר",
+      savedToAccount:"נשמר לחשבון שלך ✓",
+      upsellDenied:"ניתוח AI הוא תכונה בתשלום — שדרג כדי לפתוח אותה.",
+      accountTitle:"חשבון", authNeedBoth:"נדרשים אימייל וסיסמה.",
       h_motion:"תנועה", drillsLib:"תרגילים לתרגול", drillWatch:"▶ צפה", drillHowto:"▾ איך",
       modalClose:"סגור", drillOpenYt:"פתח ביוטיוב ↗",
       hint_motion:{head:"סכמה פשוטה המונעת מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
@@ -74282,8 +74370,98 @@
     $("narratebtn").textContent = narrating ? t("narrating") : t("narrate");
     $("narratebtn").disabled = narrating;
     $("foot").textContent = t("foot");
+    renderAccount();
   }
   $("langbtn").addEventListener("click",()=>{ lang = lang==="he"?"en":"he"; localStorage.setItem("swimlab.lang",lang); render(); });
+
+  // ----------------- accounts (Phase C): sign-in, history, upsell -----------------
+  let AUTH_USER = null;                 // set by swimauth:changed
+  function newSwimId(){ return "swim-"+Date.now()+"-"+Math.random().toString(36).slice(2,7); }
+  let _toastTimer=null;
+  function toast(msg){ const el=$("toast"); if(!el) return; el.textContent=msg; el.hidden=false;
+    clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>{el.hidden=true;},2600); }
+
+  function renderAccount(){
+    const hasAuth = !!window.SwimAuth;               // only when Firebase is configured
+    const ab=$("accountbtn"), hb=$("historybtn");
+    ab.hidden = !hasAuth; hb.hidden = !(hasAuth && AUTH_USER);
+    if(!hasAuth) return;
+    if(AUTH_USER){
+      const who = AUTH_USER.displayName || AUTH_USER.email || "account";
+      ab.textContent = "⎋ "+who; ab.title = t("signOut");
+      hb.textContent = t("history");
+    } else {
+      ab.textContent = t("signIn"); ab.title = t("accountTitle");
+    }
+  }
+
+  // sign-in modal
+  let authMode="signin";               // "signin" | "register"
+  function openAuth(){ authMode="signin"; renderAuthModal(); $("authModal").hidden=false; }
+  function closeAuth(){ $("authModal").hidden=true; $("authErr").hidden=true; $("authEmail").value=""; $("authPass").value=""; }
+  function renderAuthModal(){
+    const reg = authMode==="register";
+    $("authTitle").textContent = t(reg?"authRegisterTitle":"authSignInTitle");
+    $("googleBtn").innerHTML = `<span class="gg">G</span>${esc(t("googleBtn"))}`;
+    $("authOr").textContent = t("authOr");
+    $("authSubmit").textContent = t(reg?"authSubmitRegister":"authSubmitSignIn");
+    $("authToggleTxt").textContent = t(reg?"toSignInTxt":"toRegisterTxt");
+    $("authToggle").textContent = t(reg?"toSignInLink":"toRegisterLink");
+    $("authPass").autocomplete = reg?"new-password":"current-password";
+  }
+  function authErr(e){ const el=$("authErr"); el.textContent=(e&&(e.message||e.code))||String(e); el.hidden=false; }
+  async function doGoogle(){ try{ await window.SwimAuth.signInGoogle(); closeAuth(); }catch(e){ authErr(e); } }
+  async function doSubmit(){
+    const em=$("authEmail").value.trim(), pw=$("authPass").value;
+    if(!em||!pw){ authErr(t("authNeedBoth")); return; }
+    try{
+      if(authMode==="register") await window.SwimAuth.registerEmail(em,pw);
+      else await window.SwimAuth.signInEmail(em,pw);
+      closeAuth();
+    }catch(e){ authErr(e); }
+  }
+  document.addEventListener("click",e=>{ if(e.target.closest("[data-close-auth]")) closeAuth();
+    if(e.target.closest("[data-close-hist]")) $("histModal").hidden=true; });
+  $("googleBtn").addEventListener("click",doGoogle);
+  $("authSubmit").addEventListener("click",doSubmit);
+  $("authPass").addEventListener("keydown",e=>{ if(e.key==="Enter") doSubmit(); });
+  $("authToggle").addEventListener("click",e=>{ e.preventDefault(); authMode=authMode==="register"?"signin":"register"; renderAuthModal(); });
+
+  $("accountbtn").addEventListener("click",()=>{ if(AUTH_USER) window.SwimAuth.signOut(); else openAuth(); });
+
+  // history
+  async function refreshHistory(){ /* re-list if the modal is open */
+    if(!$("histModal").hidden) await openHistory(); }
+  async function openHistory(){
+    if(!(window.SwimData&&AUTH_USER)) return;
+    $("histTitle").textContent=t("histTitle");
+    $("histBody").innerHTML=`<div class="histempty">${esc(t("histLoading"))}</div>`;
+    $("histModal").hidden=false;
+    let swims=[];
+    try{ swims=await window.SwimData.listSwims(); }catch(e){ $("histBody").innerHTML=`<div class="histempty">${esc(t("histLoadFail"))}</div>`; return; }
+    if(!swims.length){ $("histBody").innerHTML=`<div class="histempty">${esc(t("histEmpty"))}</div>`; return; }
+    const dfmt=ts=>{ try{ const d=ts&&ts.seconds?new Date(ts.seconds*1000):(ts?new Date(ts):null); return d?d.toLocaleString():""; }catch{ return ""; } };
+    const li=swims.map(s=>{
+      const pls=(s.summary&&s.summary.placements||[]).join(" · ")||(s.default_placement||"");
+      const name=s.swimmer_id||s.id;
+      return `<li data-bundle="${esc(s.bundlePath||"")}"><div class="hmeta">`+
+        `<span class="hname">${esc(name)}</span>`+
+        `<span class="hsub">${esc(dfmt(s.createdAt))}</span>`+
+        `<span class="hpl">${esc(pls)}</span></div><span class="link">${esc(t("import").replace(/^[^ ]+ /,""))} →</span></li>`;
+    }).join("");
+    $("histBody").innerHTML=`<ul class="hist">${li}</ul>`;
+    $("histBody").querySelectorAll("li[data-bundle]").forEach(el=>el.addEventListener("click",async()=>{
+      const path=el.getAttribute("data-bundle"); if(!path) return;
+      try{ const bundle=await window.SwimData.loadBundle(path); ingestBundle(bundle,"saved"); $("histModal").hidden=true; }
+      catch(e){ toast(t("histLoadFail")); }
+    }));
+  }
+  $("historybtn").addEventListener("click",openHistory);
+
+  // react to auth state (dispatched by the bootstrap module)
+  document.addEventListener("swimauth:changed",e=>{ AUTH_USER=e.detail&&e.detail.user||null;
+    if(AUTH_USER) closeAuth(); renderAccount(); });
+  document.addEventListener("swimbackend:ready",()=>renderAccount());
 
   function drawTabs(){
     $("tabs").innerHTML = ORDER.map(k=>{
@@ -74385,7 +74563,9 @@
         const data=await window.SwimBackend.narrate(p, p.placement||active);
         p._nar=data.narratives||{}; p._narModel=data.model||"";
         narrating=false; render();
-      }catch(e){ narrating=false; applyChrome(); alert(t("narrateFail")+" ("+(e.message||e)+")"); }
+      }catch(e){ narrating=false; applyChrome();
+        const denied=(e&&(e.code||"")).includes("permission-denied")||(e&&e.details&&e.details.reason==="upgrade_required");
+        alert(denied ? t("upsellDenied") : t("narrateFail")+" ("+(e.message||e)+")"); }
       return;
     }
     // Fallback: the standalone Cloudflare narration Worker (offline / no backend).
@@ -74678,9 +74858,13 @@
     if(!recordings.length){ alert(t("needBackend")); return; }
     const prev=$("importlab").textContent; $("importlab").textContent=t("processing");
     try{
-      const bundle=await window.SwimBackend.processSession(recordings,pool);
+      const opts={poolLengthM:pool};
+      if(window.SwimAuth&&window.SwimAuth.user) opts.swimId=newSwimId();  // save to account
+      const bundle=await window.SwimBackend.processSession(recordings,opts);
       const n=ingestBundle(bundle,"session");
-      if(!n) alert("Not a recognised swimlab session payload.");
+      if(!n){ alert("Not a recognised swimlab session payload."); return; }
+      if(bundle.saved){ toast(t("savedToAccount")); refreshHistory(); }
+      else if(bundle.saveError){ console.warn("[swimlab] save failed:",bundle.saveError); }
     }catch(err){ alert("Processing failed ("+(err.message||err)+")"); }
     finally{ $("importlab").textContent=prev; }
   }
@@ -74710,42 +74894,91 @@
 })();
 </script>
 
-<!-- Phase B: connect to the deployed swimlab backend (Firebase callable
-     functions), so narration and raw-DOT processing use a server secret with no
-     worker URL. Active only when firebase-config.js set window.SWIMLAB_FIREBASE_CONFIG
-     (the hosted app); the offline artifacts skip this entirely. -->
+<!-- Phase B/C: connect to the deployed swimlab backend (Firebase callable
+     functions) + accounts (Auth, Firestore, Storage), so narration and raw-DOT
+     processing use a server secret with no worker URL, and swims save to the
+     signed-in user. Active only when firebase-config.js set
+     window.SWIMLAB_FIREBASE_CONFIG (the hosted app); offline artifacts skip it. -->
 <script type="module">
 (async () => {
   const cfg = window.SWIMLAB_FIREBASE_CONFIG;
   if (!cfg) return;                       // offline artifact / not configured
   const V = window.SWIMLAB_FIREBASE_SDK_VERSION || "10.12.0";
+  const base = `https://www.gstatic.com/firebasejs/${V}`;
   try {
-    const { initializeApp } = await import(
-      `https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-    const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import(
-      `https://www.gstatic.com/firebasejs/${V}/firebase-functions.js`);
+    const { initializeApp } = await import(`${base}/firebase-app.js`);
+    const { getFunctions, httpsCallable, connectFunctionsEmulator } =
+      await import(`${base}/firebase-functions.js`);
+    const auth = await import(`${base}/firebase-auth.js`);
+    const fs = await import(`${base}/firebase-firestore.js`);
+    const st = await import(`${base}/firebase-storage.js`);
+
     const app = initializeApp(cfg);
     const region = cfg.functionsRegion || "us-central1";
     const fns = getFunctions(app, region);
+    const A = auth.getAuth(app);
+    const DB = fs.getFirestore(app);
+    const ST = st.getStorage(app);
     if (window.SWIMLAB_FUNCTIONS_EMULATOR) {
       const [host, port] = String(window.SWIMLAB_FUNCTIONS_EMULATOR).split(":");
       connectFunctionsEmulator(fns, host || "localhost", Number(port) || 5001);
     }
     const _process = httpsCallable(fns, "process_session", { timeout: 300000 });
     const _narrate = httpsCallable(fns, "narrate", { timeout: 120000 });
+
+    // ---- callables (auth token auto-attaches when signed in) ----
     window.SwimBackend = {
       region,
-      // recordings: [{placement_id, trial, t0a, t0b, ...}] -> dashboard bundle
-      async processSession(recordings, poolLengthM = 25) {
-        const { data } = await _process({ recordings, pool_length_m: poolLengthM });
+      // recordings + optional {swimId} -> dashboard bundle (saved when signed in + swimId)
+      async processSession(recordings, opts = {}) {
+        const poolLengthM = opts.poolLengthM ?? opts ?? 25;   // back-compat: number allowed
+        const body = { recordings, pool_length_m: typeof poolLengthM === "number" ? poolLengthM : 25 };
+        if (opts && opts.swimId) body.swim_id = opts.swimId;
+        const { data } = await _process(body);
         return data;
       },
-      // one placement's payload -> {narratives:{en,he}, model, placement}
       async narrate(payload, placement) {
         const { data } = await _narrate({ payload, placement });
         return data;
       },
     };
+
+    // ---- auth ----
+    const google = new auth.GoogleAuthProvider();
+    window.SwimAuth = {
+      get user() { return A.currentUser; },
+      signInGoogle: () => auth.signInWithPopup(A, google),
+      signInEmail: (e, p) => auth.signInWithEmailAndPassword(A, e, p),
+      registerEmail: (e, p) => auth.createUserWithEmailAndPassword(A, e, p),
+      signOut: () => auth.signOut(A),
+      onChange: (cb) => auth.onAuthStateChanged(A, cb),
+    };
+    auth.onAuthStateChanged(A, (user) => {
+      if (user && !user.isAnonymous) {
+        // keep a harmless profile doc (rules allow only these fields)
+        fs.setDoc(fs.doc(DB, "users", user.uid),
+          { displayName: user.displayName || null, updatedAt: fs.serverTimestamp() },
+          { merge: true }).catch(() => {});
+      }
+      document.dispatchEvent(new CustomEvent("swimauth:changed", { detail: { user } }));
+    });
+
+    // ---- account data (Firestore history + Storage bundles) ----
+    window.SwimData = {
+      async listSwims() {
+        const u = A.currentUser; if (!u) return [];
+        const q = fs.query(fs.collection(DB, "users", u.uid, "swims"),
+                           fs.orderBy("createdAt", "desc"));
+        const snap = await fs.getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      },
+      // download a saved bundle (bundlePath is a gs:// URL) -> the app bundle object
+      async loadBundle(bundlePath) {
+        const bytes = await st.getBytes(st.ref(ST, bundlePath));
+        return JSON.parse(new TextDecoder().decode(bytes));
+      },
+    };
+
     document.dispatchEvent(new CustomEvent("swimbackend:ready", { detail: { region } }));
   } catch (e) {
     console.warn("[swimlab] Firebase backend unavailable:", (e && e.message) || e);

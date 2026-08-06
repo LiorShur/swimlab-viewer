@@ -102,6 +102,37 @@ ProgressSnapshot(id, user_id, computed_at, stats_json)   -- cross-session trends
 `metrics_json` / `narrative_json` are exactly the payloads the dashboards already
 consume, so the presentation layer is unchanged by where they come from.
 
+### 3a. As built on Firebase (Phase C)
+
+We're building on Firebase (Firestore + Storage + Auth + Cloud Functions), so the
+relational sketch above maps onto documents. **Two things are server-authoritative
+and the client can never write them** — entitlement and swim bundles — which is
+what makes the freemium gate real (see `../firestore.rules`).
+
+```
+users/{uid}                       profile — client-owned: {displayName, locale, createdAt, updatedAt}
+users/{uid}/private/entitlement   {tier: 'free'|'paid', updatedAt, source}   SERVER-written only
+users/{uid}/swims/{swimId}        {swimmer_id, pool_length_m, createdAt,
+                                    default_placement, placements_summary,     <- small, for the history list
+                                    bundle,                                    <- the full dashboard bundle the app renders
+                                    raw: {placement_id: {trial,t0a,t0b: gs://…}}}   SERVER-written only
+
+Storage: users/{uid}/raw/{swimId}/{placement}/{pose}.csv   client-uploaded raw DOT CSVs (private, ≤64 MB, CSV)
+```
+
+Flow: the client **uploads raw CSVs to Storage** (keeps big files out of the
+callable), calls `process_session` with the `gs://` paths + a `swimId` + its auth
+token; the function processes, **writes the bundle to `users/{uid}/swims/{swimId}`
+with the Admin SDK**, and returns it. History is a client read of `swims`
+ordered by `createdAt`. If a swim `bundle` ever exceeds Firestore's 1 MB doc
+limit, it spills to `users/{uid}/swims/{swimId}/bundle.json` in Storage and the
+doc keeps only the summary + a pointer (not needed at current bundle sizes).
+
+`tier` lives in `private/entitlement`, written only by the backend (Phase C:
+manually during testing; later a billing webhook). During the **soft-gate**
+phase every signed-in user can narrate; flipping `FREEMIUM_ENFORCED` on turns
+the paywall live with no client change.
+
 ---
 
 ## 4. API contract (first cut)
