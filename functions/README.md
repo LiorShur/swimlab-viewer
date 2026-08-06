@@ -41,6 +41,31 @@ The tests generate a synthetic swimmer → `io.write_dot_export` Custom-Mode-5 C
 → `process_session`, and check the payloads + that metrics equal the direct
 engine.
 
+## Sample data + smoke-test the function
+
+Generate real-format **Custom-Mode-5** recordings for a synthetic swimmer (a
+trial + T0a/T0b per placement) and a ready-to-POST request body:
+
+```bash
+python tools/make_sample_recordings.py --out /tmp/swim_sample --n-lengths 2
+# -> /tmp/swim_sample/{head,sacrum,wrist_l,wrist_r}/{trial,t0a,t0b}.csv
+#    /tmp/swim_sample/request.json   (the {data:{recordings,pool_length_m}} body)
+```
+
+With the emulator running, call the function with that body:
+
+```bash
+curl -X POST \
+  http://localhost:5001/<PROJECT>/us-central1/process_session \
+  -H "Content-Type: application/json" -d @/tmp/swim_sample/request.json
+# -> {"result": {"placements": {"head":..,"sacrum":..,"wrist":..}, "default_placement":"sacrum"}}
+```
+
+> Inline CSVs make the body a few MB per sensor — fine for a local smoke test, but
+> **real recordings upload to Cloud Storage** and pass `gs://…` paths (the function
+> downloads them). For a tiny curl test, generate with `--n-lengths 1` or trim
+> `request.json` to a single placement.
+
 ## Deploy / emulate
 
 The engine must be importable in the runtime. Vendor it first (git-ignored):
