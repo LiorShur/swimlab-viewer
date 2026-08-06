@@ -46,6 +46,16 @@ def main() -> None:
     ap.add_argument("--pool-length-m", type=float, default=25.0)
     ap.add_argument("--swimmer-id", default="S-SAMPLE")
     args = ap.parse_args()
+
+    if not hasattr(io, "write_dot_export"):
+        raise SystemExit(
+            "Your installed swimlab is too old: it has no io.write_dot_export.\n"
+            "Update the engine to the branch with the multi-placement modules:\n"
+            "    cd /path/to/swimlab && git checkout claude/synth-head-imu-generator-3tljlr\n"
+            "    git pull && pip install -e .\n"
+            f"(importing swimlab from: {getattr(io, '__file__', '?')})"
+        )
+
     args.out.mkdir(parents=True, exist_ok=True)
 
     body = synth.generate_swim(
