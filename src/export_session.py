@@ -42,6 +42,14 @@ _PREFAB = [
 _GATE_THRESHOLD_DEG = 13.5  # lifter/rotator separation from the integration gate
 
 
+def _attach_findings(payload: dict) -> dict:
+    """Attach the rule-based, placement-aware findings block (headline + summary
+    + grounded coaching). Deterministic; no API call. See ``findings.py``."""
+    import findings
+    payload["findings"] = findings.findings_for(payload)
+    return payload
+
+
 def _trim(x, d: int = 2):
     """Round a number; pass ``None`` through unchanged.
 
@@ -159,7 +167,7 @@ def from_mock(archetype: str, seed: int, baseline: float,
     flags = [f for f in [pose_flag] if f]
     if int(summ["n_valid"][0]) < 20:
         flags.append("INSUFFICIENT_CYCLES")
-    return _package(cal, gt, pb, summ, pushoffs, flags)
+    return _attach_findings(_package(cal, gt, pb, summ, pushoffs, flags))
 
 
 def add_narrative(payload: dict, model: str, lang: str = "en") -> dict:
@@ -282,7 +290,7 @@ def sacrum_from_mock(
             }
         )
 
-    return {
+    return _attach_findings({
         "placement": "sacrum",
         "swimmer_id": f"{swimmer_id} (synthetic {archetype.lower()})",
         "session": "T7 — 4×25 m front crawl",
@@ -314,7 +322,7 @@ def sacrum_from_mock(
             "t": [_trim(x, 3) for x in t[::step]],
             "roll": [_trim(x, 1) for x in roll[::step]],
         },
-    }
+    })
 
 
 def build_sacrum_set() -> dict:
@@ -410,7 +418,7 @@ def wrist_from_mock(
     from swimlab import wrist as _w  # metrics frames for symmetry()
     mR = _pl_from_arm(arms["R"]); mL = _pl_from_arm(arms["L"])
     sym = _w.symmetry(mR, mL, arms["R"].pop("_ev"), arms["L"].pop("_ev")).row(0, named=True)
-    return {
+    return _attach_findings({
         "placement": "wrist",
         "swimmer_id": f"{swimmer_id} (synthetic {archetype.lower()})",
         "session": "T7 — 4×25 m front crawl",
@@ -419,7 +427,7 @@ def wrist_from_mock(
         "arms": arms,
         "symmetry": {k: _trim(v, 3) for k, v in sym.items()},
         "flags": sorted(set(arms["R"]["flags"]) | set(arms["L"]["flags"])),
-    }
+    })
 
 
 def _pl_from_arm(arm: dict):

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,19 +19,18 @@
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.5}
   .wrap{max-width:1080px;margin:0 auto;padding:22px 20px 64px}
   header{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end;justify-content:space-between}
-  h1{font-size:20px;margin:0;font-weight:680;letter-spacing:-.01em}
-  h1 .tag{font-size:12px;color:var(--muted);font-weight:500;margin-left:8px}
+  h1{font-size:20px;margin:0;font-weight:680;letter-spacing:-.01em;direction:ltr;display:inline-block}
+  h1 .tag{font-size:12px;color:var(--muted);font-weight:500;margin:0 8px}
   .sub{color:var(--muted);font-size:13px;margin-top:2px}
   .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .ltr{direction:ltr}
 
   .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
   .tab{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;
     border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;
     font-size:14px;font-weight:550;transition:.12s}
   .tab .ic{font-size:16px}
-  .tab[aria-selected="true"]{border-color:var(--accent);background:var(--panel2);
-    box-shadow:inset 0 0 0 1px var(--accent)}
-  .tab[disabled]{opacity:.4;cursor:not-allowed}
+  .tab[aria-selected="true"]{border-color:var(--accent);background:var(--panel2);box-shadow:inset 0 0 0 1px var(--accent)}
   .tab .pl{font-size:11px;color:var(--muted);font-weight:500}
 
   .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
@@ -48,8 +47,8 @@
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
   .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
   .kpi .k-lab{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
-  .kpi .k-val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:25px;font-weight:600;margin-top:8px;letter-spacing:-.02em}
-  .kpi .k-val .u{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+  .kpi .k-val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:25px;font-weight:600;margin-top:8px;letter-spacing:-.02em;direction:ltr}
+  .kpi .k-val .u{font-size:13px;color:var(--muted);font-weight:500;margin:0 3px}
   .kpi .k-sub{font-size:11.5px;color:var(--muted);margin-top:4px}
   .kpi.hero .k-val{color:var(--accent)}
 
@@ -63,34 +62,44 @@
   .panel .hint{font-size:12px;color:var(--muted);margin:0 0 10px}
   canvas{width:100%;height:250px;display:block}
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
-  .legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+  .legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0 5px}
   table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
   thead th{text-align:right;padding:8px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
   thead th:first-child,tbody td:first-child{text-align:left}
   tbody td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);font-family:var(--mono);font-variant-numeric:tabular-nums}
   tbody tr:last-child td{border-bottom:none}
-  .sym{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .sym{display:flex;align-items:center;gap:12px;margin:8px 0;direction:ltr}
   .sym .bar{flex:1;height:24px;border-radius:6px;overflow:hidden;display:flex;background:var(--panel2);border:1px solid var(--line)}
   .sym .bar .l{background:var(--left);opacity:.85}.sym .bar .r{background:var(--right);opacity:.85}
   .sym .cap{font-size:12px;color:var(--muted);min-width:60px}
-  .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);margin-left:6px}
+  .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);margin:0 6px}
   a.link{color:var(--accent);text-decoration:none;font-size:13px}
   a.link:hover{text-decoration:underline}
+  .fhead{font-size:17px;font-weight:680;margin:14px 0 2px;letter-spacing:-.01em}
+  .findings .f-head{font-size:16px;font-weight:660;margin:2px 0 4px}
+  .findings .f-sum{margin:0 0 8px;max-width:72ch}
+  ul.coach{list-style:none;padding:0;margin:6px 0 0}
+  ul.coach li{padding:11px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+  ul.coach li:last-child{border-bottom:none}
+  ul.coach .pt{font-size:14px}
+  ul.coach .mchip{align-self:flex-start;font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;direction:ltr}
   .foot{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.6}
-  .foot code{font-family:var(--mono);font-size:11.5px}
+  .foot code{font-family:var(--mono);font-size:11.5px;direction:ltr}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div>
-      <h1>swimlab <span class="tag">· multi-sensor swim analysis</span></h1>
-      <div class="sub" id="sub">Choose a sensor placement, pick a swimmer, or import a session.</div>
+      <h1>swimlab <span class="tag" id="apptag"></span></h1>
+      <div class="sub" id="sub"></div>
     </div>
     <div class="controls">
-      <label class="lab" for="pick">Swimmer</label>
+      <button class="btn" id="langbtn" title="language"></button>
+      <label class="lab" for="pick" id="picklab"></label>
       <select id="pick"></select>
-      <label class="btn" for="file">⬆ Import session…</label>
+      <label class="btn" for="file" id="importlab"></label>
       <input type="file" id="file" accept="application/json,.json">
     </div>
   </header>
@@ -101,33 +110,108 @@
   <div id="summary"></div>
   <div id="detail"></div>
 
-  <div class="foot">
-    Synthetic pilot data — one <code>synth.generate_swim()</code> body per swimmer,
-    sampled by a virtual sensor at the chosen placement and run through the matching
-    <code>swimlab</code> module (head / <code>sacrum</code> / <code>wrist</code>).
-    Every number is scored against known ground truth in the engine's tests. A
-    static page can't run the Python pipeline, so <b>Import</b> loads an exported
-    session file (<code>export_session.py</code>); raw Movella DOT files need the
-    engine (or a small service) to become one. Validate on real recordings when the
-    hardware lands.
-  </div>
+  <div class="foot" id="foot"></div>
 </div>
 
 <script type="application/json" id="data">__DATA__</script>
 <script>
 (function(){
   const RAW = JSON.parse(document.getElementById("data").textContent);
-  // Normalise into { head:{sessions,default}, sacrum:{...}, wrist:{...} }
   const BUNDLE = RAW.placements ? RAW.placements : RAW;
 
-  const META = {
-    sacrum:{label:"Sacrum",ic:"🎯",pl:"pelvis"},
-    wrist:{label:"Wrist L/R",ic:"⌚",pl:"forearms"},
-    head:{label:"Head",ic:"🏊",pl:"skull"},
+  // ---------------- i18n ----------------
+  const T = {
+    en:{
+      tag:"· multi-sensor swim analysis",
+      subDefault:"Choose a sensor placement, pick a swimmer, or import a session.",
+      swimmer:"Swimmer", import:"⬆ Import session…", langBtn:"עברית",
+      seeFull:"See the full analysis", coaching:"Coaching points",
+      disclaimer:"Illustrative and hypothesis-based — not a validated finding.",
+      headLink:"The head module also has AI narration + drills → ",
+      headLinkA:"open full head dashboard", aiLater:"AI narration can layer richer prose on top when configured.",
+      foot:"Synthetic pilot data — one generate_swim() body per swimmer, sampled by a virtual sensor at the chosen placement and run through the matching swimlab module (head / sacrum / wrist). Every number is scored against known ground truth in the engine's tests. A static page can't run the Python pipeline, so Import loads an exported session file; raw Movella DOT files need the engine (or a small service) to become one. Validate on real recordings when the hardware lands.",
+      tab:{sacrum:"Sacrum",wrist:"Wrist L/R",head:"Head"}, seg:{pelvis:"pelvis",forearms:"forearms",skull:"skull"},
+      banner:{sacrum:"Sacrum (pelvis): whole-body roll + push-offs → lengths, distance, stroke count, tempo, L/R roll symmetry.",
+        wrist:"Wrist (forearm L+R): per-arm stroke phases from forearm pitch → stroke count/rate, plus the L/R symmetry fusion metric.",
+        head:"Head (skull): breath technique — head-lift (Δpitch) vs rotation (roll), the lifter/rotator gate."},
+      // kpi labels
+      k_distance:"Distance",k_strokeCount:"Stroke count",k_tempo:"Tempo",k_bodyRoll:"Body roll",
+      k_symmetry:"L/R symmetry",k_strokeRate:"Stroke rate",k_pullFrac:"Pull fraction",k_phase:"Phase offset",
+      k_ampSym:"Amplitude sym.",k_pattern:"Pattern",k_dpitch:"Mean Δpitch",k_peakRoll:"Peak roll",
+      k_consistency:"Consistency",k_breaths:"Breaths",
+      // subs / words
+      s_lengths:"lengths",s_lenPool:n=>`${n} lengths`,s_valid:"valid",s_perMin:"cyc/min",s_meanPeak:"mean peak",
+      s_rightArm:"right arm",s_underWater:"of cycle under water",s_RL:"R / L",s_antiphase:"~0.5 = antiphase",
+      s_breathLift:"breath head-lift",s_breathRot:"breath rotation",s_sdBreaths:"SD across breaths",
+      s_validTotal:"valid / total",s_gate:g=>`gate ${g}°`,s_lenPer:"× pool",
+      w_balanced:"balanced",w_rightDom:"right-dominant",w_leftDom:"left-dominant",
+      w_slowing:"slowing",w_speeding:"speeding",w_steady:"steady",
+      // sections
+      h_bodyRoll:"Body roll over the swim",h_symmetry:"Left / right roll symmetry",h_perLength:"Per length",
+      h_forearm:"Forearm pitch — both arms",h_perArm:"Per arm",h_symFusion:"L/R symmetry (fusion)",
+      h_headTrace:"Head pitch & roll over the swim",h_summary:"Summary",
+      hint_roll:"Each stroke is one roll lobe; ticks mark strokes (right/left), dashed = push-offs, shaded = excluded glide.",
+      hint_sym:"Mean peak roll per side; a balanced stroke fills the bar evenly.",
+      hint_perLength:"Lengths are delimited by detected push-offs; duration is the pace signal.",
+      hint_forearm:"Each pull is a downward lobe (hand below the forward line, under water). Arms are antiphase: right and left pulls interleave.",
+      hint_headTrace:"Pitch (head lift) and roll (rotation to breathe); dashed = push-offs.",
+      leg_rollR:"roll right (+)",leg_rollL:"roll left (−)",leg_rArm:"right forearm",leg_lArm:"left forearm",
+      leg_pitch:"pitch (nose up +)",leg_roll:"roll (right +)",
+      th_length:"Length",th_start:"Start (s)",th_dur:"Dur (s)",th_strokes:"Strokes",
+      th_arm:"Arm",th_rate:"Rate (cpm)",th_amp:"Amp (°)",th_pull:"Pull (s)",th_pullFrac:"Pull frac",
+      r_right:"Right",r_left:"Left",
+      row_strokeIdx:"Stroke-count index",row_ampIdx:"Amplitude index",row_pullIdx:"Pull-duration index",row_phase:"Phase offset (cycles)",
+      pushInfo:(n,i)=>`Push-offs ${n} · pace drift ${i}`,
+      mMeanDp:"Mean Δpitch",mPeakRoll:"Peak roll",mRatio:"Roll:pitch ratio",mAsym:"Asymmetry index",mVar:"Variability (SD)",
+    },
+    he:{
+      tag:"· ניתוח שחייה רב-חיישני",
+      subDefault:"בחר מיקום חיישן, בחר שחיין, או ייבא מפגש.",
+      swimmer:"שחיין", import:"⬆ ייבוא מפגש…", langBtn:"English",
+      seeFull:"הצג את הניתוח המלא", coaching:"נקודות אימון",
+      disclaimer:"להמחשה ומבוסס-השערה — לא ממצא מאומת.",
+      headLink:"למודול הראש יש גם ניתוח AI ותרגילים → ",
+      headLinkA:"פתח את לוח הראש המלא", aiLater:"ניתוח AI יכול להוסיף ניסוח עשיר יותר כשהוא מוגדר.",
+      foot:"נתוני פיילוט סינתטיים — גוף generate_swim() אחד לכל שחיין, שנדגם על-ידי חיישן וירטואלי במיקום הנבחר והורץ דרך מודול swimlab המתאים (ראש / אגן / פרק יד). כל מספר נבדק מול אמת-ידועה בבדיקות המנוע. עמוד סטטי אינו יכול להריץ את צנרת ה-Python, ולכן הייבוא טוען קובץ מפגש מיוצא; קבצי Movella DOT גולמיים צריכים לעבור דרך המנוע (או שירות קטן). אמת מול הקלטות אמיתיות כשהחומרה תגיע.",
+      tab:{sacrum:"אגן",wrist:"פרקי יד",head:"ראש"}, seg:{pelvis:"אגן",forearms:"אמות",skull:"גולגולת"},
+      banner:{sacrum:"אגן: סיבוב גוף מלא + דחיפות קיר → אורכים, מרחק, מספר תנועות, טמפו, סימטריית סיבוב ימין/שמאל.",
+        wrist:"פרק יד (אמה ימין+שמאל): שלבי משיכה לכל יד מזווית האמה → מספר/קצב תנועות, ומדד סימטריית ימין/שמאל.",
+        head:"ראש: טכניקת נשימה — הרמת ראש (Δpitch) מול סיבוב (roll), קו ההפרדה מרים/מסתובב."},
+      k_distance:"מרחק",k_strokeCount:"מספר תנועות",k_tempo:"טמפו",k_bodyRoll:"סיבוב גוף",
+      k_symmetry:"סימטריה ימ/שמ",k_strokeRate:"קצב תנועות",k_pullFrac:"חלק המשיכה",k_phase:"הפרש פאזה",
+      k_ampSym:"סימטריית טווח",k_pattern:"דפוס",k_dpitch:"Δpitch ממוצע",k_peakRoll:"שיא סיבוב",
+      k_consistency:"עקביות",k_breaths:"נשימות",
+      s_lengths:"אורכים",s_lenPool:n=>`${n} אורכים`,s_valid:"תקינות",s_perMin:"מחז/דק",s_meanPeak:"שיא ממוצע",
+      s_rightArm:"יד ימין",s_underWater:"מהמחזור מתחת למים",s_RL:"ימ / שמ",s_antiphase:"~0.5 = אנטי-פאזה",
+      s_breathLift:"הרמת ראש בנשימה",s_breathRot:"סיבוב בנשימה",s_sdBreaths:"סטיית תקן בין נשימות",
+      s_validTotal:"תקינות / סה״כ",s_gate:g=>`קו ${g}°`,s_lenPer:"× בריכה",
+      w_balanced:"מאוזן",w_rightDom:"נטייה לימין",w_leftDom:"נטייה לשמאל",
+      w_slowing:"מאט",w_speeding:"מאיץ",w_steady:"יציב",
+      h_bodyRoll:"סיבוב הגוף לאורך השחייה",h_symmetry:"סימטריית סיבוב ימין / שמאל",h_perLength:"לפי אורך",
+      h_forearm:"זווית האמה — שתי הידיים",h_perArm:"לפי יד",h_symFusion:"סימטריית ימין/שמאל (מיזוג)",
+      h_headTrace:"פיץ׳ ורול של הראש לאורך השחייה",h_summary:"סיכום",
+      hint_roll:"כל תנועה היא אונת סיבוב אחת; קווים קצרים מסמנים תנועות (ימין/שמאל), מקווקו = דחיפות קיר, מוצלל = גלישה שהוחרגה.",
+      hint_sym:"שיא סיבוב ממוצע לכל צד; תנועה מאוזנת ממלאת את הפס באופן שווה.",
+      hint_perLength:"האורכים מתוחמים לפי דחיפות קיר שזוהו; המשך הוא אות הקצב.",
+      hint_forearm:"כל משיכה היא אונה כלפי מטה (יד מתחת לקו הקדמי, מתחת למים). הידיים באנטי-פאזה: משיכות ימין ושמאל משתלבות.",
+      hint_headTrace:"פיץ׳ (הרמת ראש) ורול (סיבוב לנשימה); מקווקו = דחיפות קיר.",
+      leg_rollR:"סיבוב לימין (+)",leg_rollL:"סיבוב לשמאל (−)",leg_rArm:"אמה ימנית",leg_lArm:"אמה שמאלית",
+      leg_pitch:"פיץ׳ (אף למעלה +)",leg_roll:"רול (ימין +)",
+      th_length:"אורך",th_start:"התחלה (ש)",th_dur:"משך (ש)",th_strokes:"תנועות",
+      th_arm:"יד",th_rate:"קצב (מחז/דק)",th_amp:"טווח (°)",th_pull:"משיכה (ש)",th_pullFrac:"חלק משיכה",
+      r_right:"ימין",r_left:"שמאל",
+      row_strokeIdx:"מדד מספר-תנועות",row_ampIdx:"מדד טווח",row_pullIdx:"מדד משך-משיכה",row_phase:"הפרש פאזה (מחזורים)",
+      pushInfo:(n,i)=>`דחיפות קיר ${n} · שחיקת קצב ${i}`,
+      mMeanDp:"Δpitch ממוצע",mPeakRoll:"שיא סיבוב",mRatio:"יחס רול:פיץ׳",mAsym:"מדד אי-סימטריה",mVar:"שונות (סטיית תקן)",
+    },
   };
+  let lang = localStorage.getItem("swimlab.lang") || "he";
+  const t = k => (T[lang] && T[lang][k]!=null) ? T[lang][k] : (T.en[k]!=null?T.en[k]:k);
+
+  const META = {sacrum:{ic:"🎯"},wrist:{ic:"⌚"},head:{ic:"🏊"}};
   const ORDER = ["sacrum","wrist","head"].filter(k=>BUNDLE[k] && BUNDLE[k].sessions);
   let active = (RAW.default_placement && BUNDLE[RAW.default_placement]) ? RAW.default_placement : ORDER[0];
-  const sel = {};  // active swimmer key per placement
+  const sel = {};
   for(const k of ORDER) sel[k] = BUNDLE[k].default || Object.keys(BUNDLE[k].sessions)[0];
 
   const $ = id => document.getElementById(id);
@@ -136,185 +220,174 @@
   const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const kpi = (lab,val,unit,sub,hero)=>`<div class="kpi${hero?" hero":""}"><div class="k-lab">${lab}</div>`+
     `<div class="k-val">${val}${unit?`<span class="u">${unit}</span>`:""}</div><div class="k-sub">${sub||""}</div></div>`;
+  const symWord = i => Math.abs(i)<0.1 ? t("w_balanced") : (i>0?t("w_rightDom"):t("w_leftDom"));
 
-  // ---- tabs ----
+  function applyChrome(){
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang==="he" ? "rtl" : "ltr";
+    $("apptag").textContent = t("tag");
+    $("picklab").textContent = t("swimmer");
+    $("importlab").textContent = t("import");
+    $("langbtn").textContent = "🌐 "+t("langBtn");
+    $("foot").textContent = t("foot");
+  }
+  $("langbtn").addEventListener("click",()=>{ lang = lang==="he"?"en":"he"; localStorage.setItem("swimlab.lang",lang); render(); });
+
   function drawTabs(){
     $("tabs").innerHTML = ORDER.map(k=>{
-      const m=META[k]; const n=Object.keys(BUNDLE[k].sessions).length;
+      const n=Object.keys(BUNDLE[k].sessions).length, seg=BUNDLE[k].sessions[sel[k]]?.placement;
+      const segw = t("seg")[({head:"skull",sacrum:"pelvis",wrist:"forearms"})[k]]||"";
       return `<button class="tab" role="tab" data-k="${k}" aria-selected="${k===active}">`+
-        `<span class="ic">${m.ic}</span><span>${m.label}</span><span class="pl">${m.pl} · ${n}</span></button>`;
+        `<span class="ic">${META[k].ic}</span><span>${esc(t("tab")[k])}</span><span class="pl">${segw} · ${n}</span></button>`;
     }).join("");
     $("tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{active=b.dataset.k;render();});
   }
-
-  // ---- swimmer picker ----
   function drawPicker(){
     const keys=Object.keys(BUNDLE[active].sessions);
     $("pick").innerHTML = keys.map(k=>`<option value="${esc(k)}"${k===sel[active]?" selected":""}>${esc(k)}</option>`).join("");
+    $("pick").onchange=()=>{sel[active]=$("pick").value;render();};
   }
-  $("pick").addEventListener("change",()=>{sel[active]=$("pick").value;render();});
 
-  // ---- generic line chart ----
-  // series: [{data:[..], color, width}]; markers:[{t,color,up}]; bands:[[t0,t1]]; vlines:[t]
-  function lineChart(cv, t, series, opts={}){
+  function lineChart(cv, tt, series, opts={}){
     const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=opts.h||250;
     cv.width=W*dpr; cv.height=H*dpr; const ctx=cv.getContext("2d"); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-    if(!t.length) return;
-    const padL=44,padR=12,padT=12,padB=24, x0=padL,x1=W-padR,y0=padT,y1=H-padB;
-    const tMin=t[0], tMax=t[t.length-1];
-    let vMax=opts.vMax||0; if(!vMax){ for(const s of series) for(const v of s.data) vMax=Math.max(vMax,Math.abs(v)); }
+    if(!tt.length) return;
+    const padL=44,padR=12,padT=12,padB=24,x0=padL,x1=W-padR,y0=padT,y1=H-padB;
+    const tMin=tt[0],tMax=tt[tt.length-1];
+    let vMax=opts.vMax||0; if(!vMax){for(const s of series)for(const v of s.data)vMax=Math.max(vMax,Math.abs(v));}
     vMax=Math.max(10,Math.ceil(vMax/10)*10);
-    const X=tt=>x0+(x1-x0)*(tt-tMin)/(tMax-tMin||1);
-    const yc=(y0+y1)/2, Y=v=>yc-(v/vMax)*((y1-y0)/2);
+    const X=x=>x0+(x1-x0)*(x-tMin)/(tMax-tMin||1), yc=(y0+y1)/2, Y=v=>yc-(v/vMax)*((y1-y0)/2);
     const line=cssv("--line"),muted=cssv("--muted");
-    for(const b of (opts.bands||[])){ ctx.fillStyle=line; ctx.globalAlpha=.45; ctx.fillRect(X(b[0]),y0,Math.max(X(b[1])-X(b[0]),1),y1-y0); ctx.globalAlpha=1; }
-    ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0,Y(0)); ctx.lineTo(x1,Y(0)); ctx.stroke();
-    ctx.fillStyle=muted; ctx.font="11px "+cssv("--mono"); ctx.textAlign="right"; ctx.textBaseline="middle";
-    for(const g of [-vMax,0,vMax]) ctx.fillText((g>0?"+":"")+g+"°", x0-6, Y(g));
-    for(const s of series){ ctx.strokeStyle=s.color; ctx.lineWidth=s.width||1.6; ctx.beginPath();
-      for(let i=0;i<t.length;i++){ const px=X(t[i]),py=Y(s.data[i]); i?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.stroke(); }
-    ctx.setLineDash([4,4]); ctx.strokeStyle=muted; ctx.lineWidth=1;
-    for(const v of (opts.vlines||[])){ ctx.beginPath(); ctx.moveTo(X(v),y0); ctx.lineTo(X(v),y1); ctx.stroke(); }
+    for(const b of (opts.bands||[])){ctx.fillStyle=line;ctx.globalAlpha=.45;ctx.fillRect(X(b[0]),y0,Math.max(X(b[1])-X(b[0]),1),y1-y0);ctx.globalAlpha=1;}
+    ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,Y(0));ctx.lineTo(x1,Y(0));ctx.stroke();
+    ctx.fillStyle=muted;ctx.font="11px "+cssv("--mono");ctx.textAlign="right";ctx.textBaseline="middle";
+    for(const g of [-vMax,0,vMax]) ctx.fillText((g>0?"+":"")+g+"°",x0-6,Y(g));
+    for(const s of series){ctx.strokeStyle=s.color;ctx.lineWidth=s.width||1.6;ctx.beginPath();
+      for(let i=0;i<tt.length;i++){const px=X(tt[i]),py=Y(s.data[i]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
+    ctx.setLineDash([4,4]);ctx.strokeStyle=muted;ctx.lineWidth=1;
+    for(const v of (opts.vlines||[])){ctx.beginPath();ctx.moveTo(X(v),y0);ctx.lineTo(X(v),y1);ctx.stroke();}
     ctx.setLineDash([]);
-    for(const mk of (opts.markers||[])){ ctx.strokeStyle=mk.color; ctx.globalAlpha=mk.dim?.3:1; ctx.lineWidth=2;
-      const yb=Y(0), yt=mk.up?yb-10:yb+10; ctx.beginPath(); ctx.moveTo(X(mk.t),yb); ctx.lineTo(X(mk.t),yt); ctx.stroke(); }
-    ctx.globalAlpha=1; ctx.fillStyle=muted; ctx.textAlign="center"; ctx.textBaseline="bottom";
+    for(const mk of (opts.markers||[])){ctx.strokeStyle=mk.color;ctx.globalAlpha=mk.dim?.3:1;ctx.lineWidth=2;
+      const yb=Y(0),yt=mk.up?yb-10:yb+10;ctx.beginPath();ctx.moveTo(X(mk.t),yb);ctx.lineTo(X(mk.t),yt);ctx.stroke();}
+    ctx.globalAlpha=1;ctx.fillStyle=muted;ctx.textAlign="center";ctx.textBaseline="bottom";
     ctx.fillText("time (s) →",(x0+x1)/2,H-4);
   }
-
-  function symBar(idHTML, R, L, rLab, lLab){
+  function symBar(R,L,rLab,lLab){
     const tot=Math.max((R||0)+(L||0),1e-6);
     return `<div class="sym"><span class="cap" style="text-align:left;color:var(--left)">${lLab} ${fmt(L,1)}</span>`+
       `<div class="bar"><div class="l" style="width:${100*(L||0)/tot}%"></div><div class="r" style="width:${100*(R||0)/tot}%"></div></div>`+
       `<span class="cap" style="color:var(--right)">${fmt(R,1)} ${rLab}</span></div>`;
   }
+  function findingsHTML(p){
+    const f=(p.findings&&(p.findings[lang]||p.findings.en)); if(!f||!f.headline) return "";
+    const items=(f.coaching||[]).map(c=>`<li><span class="pt">${esc(c.point)}</span><span class="mchip">${esc(c.metric)}</span></li>`).join("");
+    const tail = (p.placement==="head" || (p.summary&&p.summary.mean_d_pitch_breath!=null))
+      ? `${t("headLink")}<a class="link" href="dashboard.html">${t("headLinkA")}</a>.` : t("aiLater");
+    return `<div class="panel findings"><div class="f-head">${esc(f.headline)}</div>`+
+      `<p class="f-sum">${esc(f.summary)}</p><h2>${t("coaching")}</h2><ul class="coach">${items}</ul>`+
+      `<p class="hint" style="margin-top:10px">${t("disclaimer")} ${tail}</p></div>`;
+  }
 
-  // =====================================================================
-  // Per-placement renderers -> {summary, detail, draw}
-  // =====================================================================
-
+  // -------- renderers --------
   function renderSacrum(p){
     const s=p.summary;
-    const summary =
-      kpi("Distance",fmt(s.distance_m,0),"m",`${s.lengths} lengths`,true)+
-      kpi("Stroke count",s.stroke_count,"",`${s.n_valid_strokes} valid`)+
-      kpi("Tempo",fmt(s.tempo_spm,1),"spm",`${fmt(s.stroke_rate_cpm,1)} cyc/min`)+
-      kpi("Body roll",fmt(s.body_roll_amplitude_deg,1),"°","mean peak")+
-      kpi("L/R symmetry",fmt(s.roll_symmetry_index,3),"",Math.abs(s.roll_symmetry_index)<0.1?"balanced":(s.roll_symmetry_index>0?"right-dominant":"left-dominant"));
+    const drift=s.pace_drift_s_per_length;
+    const summary=
+      kpi(t("k_distance"),fmt(s.distance_m,0),"m",t("s_lenPool")(s.lengths),true)+
+      kpi(t("k_strokeCount"),s.stroke_count,"",`${s.n_valid_strokes} ${t("s_valid")}`)+
+      kpi(t("k_tempo"),fmt(s.tempo_spm,1),"spm",`${fmt(s.stroke_rate_cpm,1)} ${t("s_perMin")}`)+
+      kpi(t("k_bodyRoll"),fmt(s.body_roll_amplitude_deg,1),"°",t("s_meanPeak"))+
+      kpi(t("k_symmetry"),fmt(s.roll_symmetry_index,3),"",symWord(s.roll_symmetry_index));
     const rows=(p.lengths||[]).map(l=>`<tr><td>#${l.length_index+1}</td><td>${fmt(l.t_start,1)}</td><td>${fmt(l.duration_s,1)}</td><td>${l.strokes}</td></tr>`).join("");
-    const detail = `<div class="panel"><h2>Body roll over the swim</h2>
-      <p class="hint">Each stroke is one roll lobe; ticks mark strokes (<span style="color:var(--right)">right</span>/<span style="color:var(--left)">left</span>), dashed = push-offs, shaded = excluded glide.</p>
-      <canvas id="cv"></canvas>
-      <div class="legend"><span><span class="sw" style="background:var(--right)"></span>roll right (+)</span><span><span class="sw" style="background:var(--left)"></span>roll left (−)</span></div></div>
-      <div class="panel"><h2>Left / right roll symmetry</h2>${symBar("",s.mean_peak_roll_right_deg,s.mean_peak_roll_left_deg,"° R","L")}
-      <div class="sub">Push-offs ${s.pushoff_count} · pace drift ${(s.pace_drift_s_per_length>0?"+":"")+fmt(s.pace_drift_s_per_length,2)} s/len</div></div>
-      <div class="panel"><h2>Per length</h2><table><thead><tr><th>Length</th><th>Start (s)</th><th>Dur (s)</th><th>Strokes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-    const draw=()=>{ const T=p.traces.t, R=p.traces.roll;
-      const markers=(p.strokes||[]).map(st=>({t:st.t_peak,color:st.side==="R"?cssv("--right"):cssv("--left"),up:st.side==="R",dim:st.excluded}));
-      const bands=(p.pushoffs||[]).map(po=>[po,po+4.0]);
-      lineChart($("cv"),T,[{data:R,color:cssv("--accent")}],{markers,bands,vlines:p.pushoffs}); };
+    const driftW = drift>0.05?t("w_slowing"):drift<-0.05?t("w_speeding"):t("w_steady");
+    const detail=`<div class="panel"><h2>${t("h_bodyRoll")}</h2><p class="hint">${t("hint_roll")}</p><div class="ltr"><canvas id="cv"></canvas></div>
+      <div class="legend"><span><span class="sw" style="background:var(--right)"></span>${t("leg_rollR")}</span><span><span class="sw" style="background:var(--left)"></span>${t("leg_rollL")}</span></div></div>
+      <div class="panel"><h2>${t("h_symmetry")}</h2><p class="hint">${t("hint_sym")}</p>${symBar(s.mean_peak_roll_right_deg,s.mean_peak_roll_left_deg,"° R","L")}
+      <div class="sub">${t("pushInfo")(s.pushoff_count,(drift>0?"+":"")+fmt(drift,2)+" s/len ("+driftW+")")}</div></div>
+      <div class="panel"><h2>${t("h_perLength")}</h2><p class="hint">${t("hint_perLength")}</p><div class="ltr"><table><thead><tr><th>${t("th_length")}</th><th>${t("th_start")}</th><th>${t("th_dur")}</th><th>${t("th_strokes")}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const draw=()=>{const markers=(p.strokes||[]).map(st=>({t:st.t_peak,color:st.side==="R"?cssv("--right"):cssv("--left"),up:st.side==="R",dim:st.excluded}));
+      lineChart($("cv"),p.traces.t,[{data:p.traces.roll,color:cssv("--accent")}],{markers,bands:(p.pushoffs||[]).map(x=>[x,x+4]),vlines:p.pushoffs});};
     return {summary,detail,draw};
   }
-
   function renderWrist(p){
-    const R=p.arms.R.summary, L=p.arms.L.summary, sy=p.symmetry;
-    const summary =
-      kpi("Stroke count",`${R.stroke_count}/${L.stroke_count}`,"","R / L",true)+
-      kpi("Amplitude sym.",fmt(sy.amplitude_symmetry_index,2),"",Math.abs(sy.amplitude_symmetry_index)<0.1?"balanced":(sy.amplitude_symmetry_index>0?"right-dominant":"left-dominant"))+
-      kpi("Phase offset",fmt(sy.mean_phase_offset_cycles,2),"cyc","~0.5 = antiphase")+
-      kpi("Stroke rate",fmt(R.stroke_rate_cpm,1),"cpm","right arm")+
-      kpi("Pull fraction",fmt(R.pull_fraction,2),"","of cycle under water");
-    const armRow=(side,a)=>`<tr><td>${side}</td><td>${a.stroke_count}</td><td>${fmt(a.stroke_rate_cpm,1)}</td><td>${fmt(a.pitch_amplitude_deg,0)}</td><td>${fmt(a.mean_pull_duration_s,2)}</td><td>${fmt(a.pull_fraction,2)}</td></tr>`;
-    const detail = `<div class="panel"><h2>Forearm pitch — both arms</h2>
-      <p class="hint">Each pull is a downward lobe (hand below the forward line, under water). Arms are antiphase: <span style="color:var(--right)">right</span> and <span style="color:var(--left)">left</span> pulls interleave.</p>
-      <canvas id="cv"></canvas>
-      <div class="legend"><span><span class="sw" style="background:var(--right)"></span>right forearm</span><span><span class="sw" style="background:var(--left)"></span>left forearm</span></div></div>
-      <div class="panel"><h2>Per arm</h2><table><thead><tr><th>Arm</th><th>Strokes</th><th>Rate (cpm)</th><th>Amp (°)</th><th>Pull (s)</th><th>Pull frac</th></tr></thead>
-      <tbody>${armRow("Right",R)}${armRow("Left",L)}</tbody></table></div>
-      <div class="panel"><h2>L/R symmetry (fusion)</h2>${symBar("",R.pitch_amplitude_deg,L.pitch_amplitude_deg,"° R","L")}
-      <table><tbody>
-        <tr><td>Stroke-count index</td><td>${fmt(sy.stroke_count_symmetry_index,3)}</td></tr>
-        <tr><td>Amplitude index</td><td>${fmt(sy.amplitude_symmetry_index,3)}</td></tr>
-        <tr><td>Pull-duration index</td><td>${fmt(sy.pull_duration_symmetry_index,3)}</td></tr>
-        <tr><td>Phase offset (cycles)</td><td>${fmt(sy.mean_phase_offset_cycles,3)}</td></tr>
-      </tbody></table></div>`;
-    const draw=()=>{ const T=p.arms.R.traces.t;
-      const markers=[];
+    const R=p.arms.R.summary,L=p.arms.L.summary,sy=p.symmetry;
+    const summary=
+      kpi(t("k_strokeCount"),`${R.stroke_count}/${L.stroke_count}`,"",t("s_RL"),true)+
+      kpi(t("k_ampSym"),fmt(sy.amplitude_symmetry_index,2),"",symWord(sy.amplitude_symmetry_index))+
+      kpi(t("k_phase"),fmt(sy.mean_phase_offset_cycles,2),"",t("s_antiphase"))+
+      kpi(t("k_strokeRate"),fmt(R.stroke_rate_cpm,1),"cpm",t("s_rightArm"))+
+      kpi(t("k_pullFrac"),fmt(R.pull_fraction,2),"",t("s_underWater"));
+    const armRow=(lab,a)=>`<tr><td>${lab}</td><td>${a.stroke_count}</td><td>${fmt(a.stroke_rate_cpm,1)}</td><td>${fmt(a.pitch_amplitude_deg,0)}</td><td>${fmt(a.mean_pull_duration_s,2)}</td><td>${fmt(a.pull_fraction,2)}</td></tr>`;
+    const detail=`<div class="panel"><h2>${t("h_forearm")}</h2><p class="hint">${t("hint_forearm")}</p><div class="ltr"><canvas id="cv"></canvas></div>
+      <div class="legend"><span><span class="sw" style="background:var(--right)"></span>${t("leg_rArm")}</span><span><span class="sw" style="background:var(--left)"></span>${t("leg_lArm")}</span></div></div>
+      <div class="panel"><h2>${t("h_perArm")}</h2><div class="ltr"><table><thead><tr><th>${t("th_arm")}</th><th>${t("th_strokes")}</th><th>${t("th_rate")}</th><th>${t("th_amp")}</th><th>${t("th_pull")}</th><th>${t("th_pullFrac")}</th></tr></thead><tbody>${armRow(t("r_right"),R)}${armRow(t("r_left"),L)}</tbody></table></div></div>
+      <div class="panel"><h2>${t("h_symFusion")}</h2>${symBar(R.pitch_amplitude_deg,L.pitch_amplitude_deg,"° R","L")}
+      <div class="ltr"><table><tbody>
+        <tr><td>${t("row_strokeIdx")}</td><td>${fmt(sy.stroke_count_symmetry_index,3)}</td></tr>
+        <tr><td>${t("row_ampIdx")}</td><td>${fmt(sy.amplitude_symmetry_index,3)}</td></tr>
+        <tr><td>${t("row_pullIdx")}</td><td>${fmt(sy.pull_duration_symmetry_index,3)}</td></tr>
+        <tr><td>${t("row_phase")}</td><td>${fmt(sy.mean_phase_offset_cycles,3)}</td></tr></tbody></table></div></div>`;
+    const draw=()=>{const markers=[];
       for(const st of (p.arms.R.strokes||[])) markers.push({t:st.t_pull,color:cssv("--right"),up:false,dim:st.excluded});
       for(const st of (p.arms.L.strokes||[])) markers.push({t:st.t_pull,color:cssv("--left"),up:true,dim:st.excluded});
-      lineChart($("cv"),T,[{data:p.arms.R.traces.pitch,color:cssv("--right")},{data:p.arms.L.traces.pitch,color:cssv("--left")}],{markers}); };
+      lineChart($("cv"),p.arms.R.traces.t,[{data:p.arms.R.traces.pitch,color:cssv("--right")},{data:p.arms.L.traces.pitch,color:cssv("--left")}],{markers});};
     return {summary,detail,draw};
   }
-
   function renderHead(p){
     const s=p.summary;
-    const summary =
-      kpi("Pattern",esc(p.detected_pattern||"—"),"",`gate ${fmt(p.gate_threshold_deg,1)}°`,true)+
-      kpi("Mean Δpitch",fmt(s.mean_d_pitch_breath,1),"°","breath head-lift")+
-      kpi("Peak roll",fmt(s.mean_peak_roll_breath,1),"°","breath rotation")+
-      kpi("Consistency",fmt(s.pitch_variability,1),"°","SD across breaths")+
-      kpi("Breaths",`${s.n_valid}/${s.n_breaths}`,"","valid / total");
-    const detail = `<div class="panel"><h2>Head pitch &amp; roll over the swim</h2>
-      <p class="hint">Pitch (head lift) and roll (rotation to breathe); dashed = push-offs.</p>
-      <canvas id="cv"></canvas>
-      <div class="legend"><span><span class="sw" style="background:var(--accent)"></span>pitch (nose up +)</span><span><span class="sw" style="background:var(--left)"></span>roll (right +)</span></div></div>
-      <div class="panel"><h2>Summary</h2><table><tbody>
-        <tr><td>Mean Δpitch</td><td>${fmt(s.mean_d_pitch_breath,1)}°</td></tr>
-        <tr><td>Peak roll</td><td>${fmt(s.mean_peak_roll_breath,1)}°</td></tr>
-        <tr><td>Roll:pitch ratio</td><td>${fmt(s.mean_roll_pitch_ratio,2)}</td></tr>
-        <tr><td>Asymmetry index</td><td>${fmt(s.asymmetry_index,3)}</td></tr>
-        <tr><td>Variability (SD)</td><td>${fmt(s.pitch_variability,1)}°</td></tr>
-      </tbody></table>
-      <p class="hint" style="margin-top:12px">The head module also has an AI narration + drills dashboard →
-        <a class="link" href="dashboard.html">open full head dashboard</a></p></div>`;
-    const draw=()=>{ const D=p.traces;
-      lineChart($("cv"),D.t,[{data:D.pitch,color:cssv("--accent")},{data:D.roll,color:cssv("--left")}],{vlines:p.pushoffs||[]}); };
+    const summary=
+      kpi(t("k_pattern"),esc(p.detected_pattern||"—"),"",t("s_gate")(fmt(p.gate_threshold_deg,1)),true)+
+      kpi(t("k_dpitch"),fmt(s.mean_d_pitch_breath,1),"°",t("s_breathLift"))+
+      kpi(t("k_peakRoll"),fmt(s.mean_peak_roll_breath,1),"°",t("s_breathRot"))+
+      kpi(t("k_consistency"),fmt(s.pitch_variability,1),"°",t("s_sdBreaths"))+
+      kpi(t("k_breaths"),`${s.n_valid}/${s.n_breaths}`,"",t("s_validTotal"));
+    const detail=`<div class="panel"><h2>${t("h_headTrace")}</h2><p class="hint">${t("hint_headTrace")}</p><div class="ltr"><canvas id="cv"></canvas></div>
+      <div class="legend"><span><span class="sw" style="background:var(--accent)"></span>${t("leg_pitch")}</span><span><span class="sw" style="background:var(--left)"></span>${t("leg_roll")}</span></div></div>
+      <div class="panel"><h2>${t("h_summary")}</h2><div class="ltr"><table><tbody>
+        <tr><td>${t("mMeanDp")}</td><td>${fmt(s.mean_d_pitch_breath,1)}°</td></tr>
+        <tr><td>${t("mPeakRoll")}</td><td>${fmt(s.mean_peak_roll_breath,1)}°</td></tr>
+        <tr><td>${t("mRatio")}</td><td>${fmt(s.mean_roll_pitch_ratio,2)}</td></tr>
+        <tr><td>${t("mAsym")}</td><td>${fmt(s.asymmetry_index,3)}</td></tr>
+        <tr><td>${t("mVar")}</td><td>${fmt(s.pitch_variability,1)}°</td></tr></tbody></table></div></div>`;
+    const draw=()=>lineChart($("cv"),p.traces.t,[{data:p.traces.pitch,color:cssv("--accent")},{data:p.traces.roll,color:cssv("--left")}],{vlines:p.pushoffs||[]});
     return {summary,detail,draw};
   }
-
   const RENDER={sacrum:renderSacrum,wrist:renderWrist,head:renderHead};
 
   function render(){
-    drawTabs(); drawPicker();
-    const p = BUNDLE[active].sessions[sel[active]];
+    applyChrome(); drawTabs(); drawPicker();
+    const p=BUNDLE[active].sessions[sel[active]];
     const flags=(p.flags||[]);
-    $("sub").innerHTML = `${esc(p.swimmer_id||sel[active])} · ${esc(p.session||"")}`+
+    $("sub").innerHTML=`${esc(p.swimmer_id||sel[active])} · ${esc(p.session||"")}`+
       (flags.length?flags.map(f=>`<span class="chip" style="color:var(--warn)">${esc(f)}</span>`).join(""):"");
-    $("banner").textContent = ({
-      sacrum:"Sacrum (pelvis): whole-body roll + push-offs → lengths, distance, stroke count, tempo, L/R roll symmetry.",
-      wrist:"Wrist (forearm L+R): per-arm stroke phases from forearm pitch → stroke count/rate, plus the L/R symmetry fusion metric.",
-      head:"Head (skull): breath technique — head-lift (Δpitch) vs rotation (roll), the lifter/rotator gate.",
-    })[active];
-    const r = RENDER[active](p);
-    $("summary").innerHTML = `<div class="kpis">${r.summary}</div>`;
-    $("detail").innerHTML = `<details class="detail" open><summary>See the full analysis</summary><div class="detail-body">${r.detail}</div></details>`;
-    r.draw();
-    window._draw = r.draw;
+    $("banner").textContent=t("banner")[active];
+    const r=RENDER[active](p);
+    const f=p.findings&&(p.findings[lang]||p.findings.en);
+    const fh=(f&&f.headline)?`<div class="fhead">${esc(f.headline)}</div>`:"";
+    $("summary").innerHTML=`${fh}<div class="kpis">${r.summary}</div>`;
+    $("detail").innerHTML=`<details class="detail" open><summary>${t("seeFull")}</summary><div class="detail-body">${findingsHTML(p)}${r.detail}</div></details>`;
+    r.draw(); window._draw=r.draw;
   }
   window.addEventListener("resize",()=>window._draw&&window._draw());
 
-  // ---- import a session file ----
   function classify(obj){
-    if(obj.placement==="sacrum" || (obj.summary&&obj.summary.body_roll_amplitude_deg!=null)) return "sacrum";
-    if(obj.placement==="wrist" || obj.arms) return "wrist";
+    if(obj.placement==="sacrum"||(obj.summary&&obj.summary.body_roll_amplitude_deg!=null)) return "sacrum";
+    if(obj.placement==="wrist"||obj.arms) return "wrist";
     if(obj.summary&&obj.summary.mean_d_pitch_breath!=null) return "head";
     return null;
   }
-  $("file").addEventListener("change", async e=>{
-    const f=e.target.files[0]; if(!f) return;
+  $("file").addEventListener("change",async e=>{
+    const file=e.target.files[0]; if(!file) return;
     try{
-      const obj=JSON.parse(await f.text());
-      let added=0, firstK=null, firstP=null;
-      const ingest=(k,payload)=>{ const pl=classify(payload); if(!pl) return;
+      const obj=JSON.parse(await file.text()); let added=0,firstP=null;
+      const ingest=(k,payload)=>{const pl=classify(payload); if(!pl) return;
         if(!BUNDLE[pl]){BUNDLE[pl]={sessions:{},default:k}; if(!ORDER.includes(pl))ORDER.unshift(pl);}
-        const key=k+" (imported)"; BUNDLE[pl].sessions[key]=payload; sel[pl]=key; added++; firstK=key; firstP=pl; };
-      if(obj.placements){ for(const pk of Object.keys(obj.placements)){ const b=obj.placements[pk];
-          for(const k of Object.keys(b.sessions||{})) ingest(k,b.sessions[k]); } }
-      else if(obj.sessions){ for(const k of Object.keys(obj.sessions)) ingest(k,obj.sessions[k]); }
-      else ingest(obj.swimmer_id||f.name, obj);
-      if(added){ active=firstP; render(); }
-      else alert("Not a recognised swimlab session payload.");
-    }catch(err){ alert("Could not read file: "+err.message); }
+        const key=k+" (imported)"; BUNDLE[pl].sessions[key]=payload; sel[pl]=key; added++; firstP=pl;};
+      if(obj.placements){for(const pk of Object.keys(obj.placements)){const b=obj.placements[pk];for(const k of Object.keys(b.sessions||{}))ingest(k,b.sessions[k]);}}
+      else if(obj.sessions){for(const k of Object.keys(obj.sessions))ingest(k,obj.sessions[k]);}
+      else ingest(obj.swimmer_id||file.name,obj);
+      if(added){active=firstP; render();} else alert("Not a recognised swimlab session payload.");
+    }catch(err){alert("Could not read file: "+err.message);}
     e.target.value="";
   });
 
