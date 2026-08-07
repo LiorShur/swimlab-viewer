@@ -59,6 +59,29 @@ ul.coach .pt { font-size: 14px; }
 ul.coach .mchip { align-self: flex-start; font-family: var(--mono); font-size: 11px; color: var(--muted);
   background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; direction: ltr; }
 
+/* drills */
+.panel h2 { font-size: 14px; margin: 4px 0 8px; font-weight: 600; }
+ul.drills { list-style: none; padding: 0; margin: 6px 0 0; }
+ul.drills li { padding: 11px 0; border-bottom: 1px solid var(--line); }
+ul.drills li:last-child { border-bottom: none; }
+ul.drills .dname { font-size: 14px; font-weight: 600; }
+ul.drills .dacts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
+.dbtn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+  padding: 5px 11px; font-size: 12.5px; cursor: pointer; font-family: var(--sans); }
+.dbtn:hover { border-color: var(--accent); }
+.dhowto { margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+/* video modal */
+.vmodal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.72); }
+.vbox { position: relative; width: min(880px, 92vw); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.vbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; font-weight: 600; font-size: 14px; }
+.vclose { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
+.vframe { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
+.vframe iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vopen { display: block; padding: 10px 14px; font-size: 12.5px; color: var(--accent); text-decoration: none; }
+.vopen:hover { text-decoration: underline; }
+
 .narrate { margin: 14px 0; }
 .narbox { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
 .narbox .ailabel { font-size: 10.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }

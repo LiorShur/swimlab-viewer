@@ -3,6 +3,7 @@ import { BANNER, KPI_LABEL, KPI_UNIT, STR, type Lang } from "../lib/i18n";
 import { PlaybackControls } from "./PlaybackControls";
 import { TraceChart, type Series } from "./TraceChart";
 import { Findings } from "./Findings";
+import { Drills } from "./Drills";
 
 const PALETTE = ["#4aa8ff", "#ff8a5b", "#3fb950", "#d29922"];
 
@@ -123,6 +124,9 @@ export function Dashboard(props: {
 
       {/* Default, rule-based analysis (no AI call) — always shown. */}
       <Findings lang={props.lang} findings={findings} />
+
+      {/* Drills to try for this placement (verified videos + how-to). */}
+      <Drills lang={props.lang} placement={props.placement} />
 
       {/* AI narration layers richer prose on top, on demand (paid). */}
       <div className="narrate">

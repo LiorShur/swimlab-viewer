@@ -31,6 +31,11 @@ export const STR: Record<Lang, Record<string, string>> = {
     analysis: "Analysis",
     coaching: "Coaching points",
     aiSummary: "AI summary",
+    drillsLib: "Drills to try",
+    drillWatch: "▶ Watch",
+    drillHowto: "▾ How to",
+    drillClose: "Close",
+    drillOpenYt: "Open on YouTube ↗",
   },
   he: {
     appName: "swimlab",
@@ -60,6 +65,11 @@ export const STR: Record<Lang, Record<string, string>> = {
     analysis: "ניתוח",
     coaching: "נקודות אימון",
     aiSummary: "סיכום AI",
+    drillsLib: "תרגילים לתרגול",
+    drillWatch: "▶ צפה",
+    drillHowto: "▾ איך",
+    drillClose: "סגור",
+    drillOpenYt: "פתח ביוטיוב ↗",
   },
 };
 
