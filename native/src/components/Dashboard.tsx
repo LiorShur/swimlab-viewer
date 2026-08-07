@@ -4,6 +4,7 @@ import { PlaybackControls } from "./PlaybackControls";
 import { TraceChart, type Series } from "./TraceChart";
 import { Findings } from "./Findings";
 import { Drills } from "./Drills";
+import { MotionSchematic } from "./MotionSchematic";
 
 const PALETTE = ["#4aa8ff", "#ff8a5b", "#3fb950", "#d29922"];
 
@@ -120,6 +121,11 @@ export function Dashboard(props: {
             onScrub={(i) => { setPlaying(false); setIndex(i); }}
           />
         </div>
+      )}
+
+      {/* Motion schematic, animated by the same playhead as the trace above. */}
+      {times.length > 1 && (
+        <MotionSchematic lang={props.lang} placement={props.placement} session={props.session} index={Math.round(index)} />
       )}
 
       {/* Default, rule-based analysis (no AI call) — always shown. */}

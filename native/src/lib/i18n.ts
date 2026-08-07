@@ -113,4 +113,20 @@ export const KPI_UNIT: Record<string, string> = {
   pitch_variability: "°", pitch_amplitude_deg: "°", distance_m: "m", tempo_spm: "spm",
 };
 
+export const MOTION_TITLE: Record<Lang, string> = { en: "Motion", he: "תנועה" };
+
+// Per-placement caption for the motion schematic (mirrors the web app).
+export const MOTION_HINT: Record<Lang, Record<string, string>> = {
+  en: {
+    head: "A simple schematic driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
+    sacrum: "A rear view of the torso rolling side to side, driven by the recorded body-roll trace.",
+    wrist: "The two forearms swinging through catch → pull → recovery, driven by each arm's pitch — antiphase, as recorded.",
+  },
+  he: {
+    head: "סכמה פשוטה המונעת מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
+    sacrum: "מבט מאחור על הגו המתגלגל מצד לצד, מונע מאות סיבוב-הגוף שנמדד.",
+    wrist: "שתי האמות נעות דרך תפיסה → משיכה → התאוששות, מונע מזווית כל יד — באנטי-פאזה, כפי שנמדד.",
+  },
+};
+
 export const dirFor = (lang: Lang) => (lang === "he" ? "rtl" : "ltr");

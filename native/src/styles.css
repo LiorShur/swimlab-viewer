@@ -59,8 +59,10 @@ ul.coach .pt { font-size: 14px; }
 ul.coach .mchip { align-self: flex-start; font-family: var(--mono); font-size: 11px; color: var(--muted);
   background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; direction: ltr; }
 
-/* drills */
-.panel h2 { font-size: 14px; margin: 4px 0 8px; font-weight: 600; }
+/* drills + schematic */
+.panel h2 { font-size: 14px; margin: 4px 0 3px; font-weight: 600; }
+.panel .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+.ltr { direction: ltr; }
 ul.drills { list-style: none; padding: 0; margin: 6px 0 0; }
 ul.drills li { padding: 11px 0; border-bottom: 1px solid var(--line); }
 ul.drills li:last-child { border-bottom: none; }

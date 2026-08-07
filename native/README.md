@@ -26,6 +26,7 @@ native/
                          default rule-based findings/coaching + AI narrate
       Findings.tsx       the bilingual rule-based analysis (no AI call)
       Drills.tsx         per-placement drills library + YouTube video modal
+      MotionSchematic    canvas figure (head/body/arms) animated by the playhead
       PlaybackControls   play / pause / speed (0.5–4×) / scrub
       TraceChart.tsx     canvas traces with a playhead
       History.tsx        saved swims -> reload a bundle from Storage
