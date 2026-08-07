@@ -11,7 +11,7 @@ import { Capture } from "./components/Capture";
 import { History } from "./components/History";
 import { Settings } from "./components/Settings";
 import { filesToRecordings } from "./ble/dot";
-import { isUpgradeRequired, narrate, processSession, type Bundle } from "./lib/backend";
+import { isUpgradeRequired, narrate, processSession, type Bundle, type Recording } from "./lib/backend";
 
 const newSwimId = () => `swim-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const ONBOARDED = "swimlab.onboarded";
@@ -67,6 +67,15 @@ export default function App() {
     } finally { setBusy(false); }
   }
 
+  async function processRecordings(recordings: Recording[]) {
+    setBusy(true);
+    try {
+      openBundle(await processSession(recordings, { swimId: user ? newSwimId() : undefined }));
+    } catch (e: any) {
+      alert("Processing failed: " + (e?.message || e));
+    } finally { setBusy(false); }
+  }
+
   async function onNarrate(sess: any) {
     try {
       const res = await narrate(sess, sess.placement || active);
@@ -93,7 +102,7 @@ export default function App() {
           <Home lang={lang} bundle={bundle} active={active} onActive={setActive}
                 onNarrate={onNarrate} goCapture={() => setTab("capture")} />
         )}
-        {tab === "capture" && <Capture lang={lang} busy={busy} onFiles={handleFiles} />}
+        {tab === "capture" && <Capture lang={lang} busy={busy} onProcess={processRecordings} onFiles={handleFiles} />}
         {tab === "history" && <History lang={lang} onOpen={openBundle} />}
         {tab === "settings" && (
           <Settings lang={lang} user={user} tier="free"

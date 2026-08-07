@@ -39,8 +39,14 @@ export const STR: Record<Lang, Record<string, string>> = {
     navHome: "Home", navCapture: "Capture", navHistory: "History", navSettings: "Settings",
     homeWelcome: "Welcome to swimlab", homeSub: "Import a swim or connect a DOT sensor to see your analysis.",
     homeImportCta: "Import a swim", homeNoSwim: "No swim loaded yet.",
-    captureTitle: "Capture a swim", captureSub: "Import recordings now; live sensor capture is coming.",
+    captureTitle: "Capture a swim", captureSub: "Add one sensor file per DOT — one or several per swim.",
     captureConnectSoon: "DOT sensor connect — coming soon",
+    wizPlacement: "Placement", wizFiles: "Files", wizSingle: "Single file", wizCalset: "Trial + calibration",
+    wizTrial: "Swim file", wizT0a: "Calibration A (upright)", wizT0b: "Calibration B (face-down)",
+    wizPick: "Choose file…", wizAddBtn: "Add to session", wizRemove: "Remove",
+    wizAddSensor: "Add a sensor", wizProcess: "Process session", wizEmpty: "Add one or more sensors, then process the swim.",
+    wizProvisional: "Single-file calibration reads the poses from the start of the file — provisional until validated on a real recording.",
+    wizDup: "That placement is already added.",
     settingsTitle: "Settings", settAccount: "Account", settTier: "Plan", settLanguage: "Language",
     settAbout: "About", tierFree: "Free", tierPaid: "Paid",
     aboutText: "swimlab — head/sacrum/wrist swim analysis from Movella DOT sensors.",
@@ -85,8 +91,14 @@ export const STR: Record<Lang, Record<string, string>> = {
     navHome: "בית", navCapture: "הקלטה", navHistory: "היסטוריה", navSettings: "הגדרות",
     homeWelcome: "ברוך הבא ל-swimlab", homeSub: "ייבא שחייה או חבר חיישן DOT כדי לראות את הניתוח שלך.",
     homeImportCta: "ייבוא שחייה", homeNoSwim: "עדיין לא נטענה שחייה.",
-    captureTitle: "הקלטת שחייה", captureSub: "ייבא הקלטות עכשיו; הקלטה חיה מחיישן בקרוב.",
+    captureTitle: "הקלטת שחייה", captureSub: "הוסף קובץ אחד לכל חיישן DOT — אחד או כמה לשחייה.",
     captureConnectSoon: "חיבור חיישן DOT — בקרוב",
+    wizPlacement: "מיקום", wizFiles: "קבצים", wizSingle: "קובץ יחיד", wizCalset: "שחייה + כיול",
+    wizTrial: "קובץ שחייה", wizT0a: "כיול A (זקוף)", wizT0b: "כיול B (פנים למטה)",
+    wizPick: "בחר קובץ…", wizAddBtn: "הוסף למפגש", wizRemove: "הסר",
+    wizAddSensor: "הוסף חיישן", wizProcess: "עבד מפגש", wizEmpty: "הוסף חיישן אחד או יותר, ואז עבד את השחייה.",
+    wizProvisional: "כיול מקובץ יחיד קורא את התנוחות מתחילת הקובץ — זמני עד לאימות על הקלטה אמיתית.",
+    wizDup: "המיקום הזה כבר נוסף.",
     settingsTitle: "הגדרות", settAccount: "חשבון", settTier: "מסלול", settLanguage: "שפה",
     settAbout: "אודות", tierFree: "חינם", tierPaid: "בתשלום",
     aboutText: "swimlab — ניתוח שחייה לראש/אגן/פרק יד מחיישני Movella DOT.",
@@ -135,6 +147,15 @@ export const KPI_LABEL: Record<Lang, Record<string, string>> = {
 export const KPI_UNIT: Record<string, string> = {
   mean_d_pitch_breath: "°", peak_roll_breath: "°", body_roll_amplitude_deg: "°",
   pitch_variability: "°", pitch_amplitude_deg: "°", distance_m: "m", tempo_spm: "spm",
+};
+
+// Placement ids the capture wizard offers, with bilingual labels.
+export const PLACEMENTS = ["head", "sacrum", "wrist_l", "wrist_r", "ankle_l", "ankle_r", "uparm_l", "uparm_r"] as const;
+export const PLACEMENT_LABEL: Record<Lang, Record<string, string>> = {
+  en: { head: "Head", sacrum: "Sacrum", wrist_l: "Wrist L", wrist_r: "Wrist R",
+        ankle_l: "Ankle L", ankle_r: "Ankle R", uparm_l: "Upper arm L", uparm_r: "Upper arm R" },
+  he: { head: "ראש", sacrum: "אגן", wrist_l: "פרק יד ש", wrist_r: "פרק יד י",
+        ankle_l: "קרסול ש", ankle_r: "קרסול י", uparm_l: "זרוע ש", uparm_r: "זרוע י" },
 };
 
 export const MOTION_TITLE: Record<Lang, string> = { en: "Motion", he: "תנועה" };

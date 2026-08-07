@@ -115,6 +115,35 @@ def test_backend_matches_direct_engine_for_head(session_recordings):
     assert backend_dpitch == pytest.approx(direct, abs=1e-6)
 
 
+def test_single_file_provisional_calibration(session_recordings):
+    """A single file per sensor (calibration poses at the start) processes with a
+    provisional split and is flagged CALIB_FROM_TRIAL_PROVISIONAL."""
+    import numpy as np
+    import polars as pl
+
+    _body, recs = session_recordings
+    head = next(r for r in recs if r["placement_id"] == "head")
+    a, b, tr = (pipeline._read_csv(head[k]) for k in ("t0a", "t0b", "trial"))
+
+    hz = 120.0
+    def tile_to(df, dur_s):
+        n = int(dur_s * hz)
+        return pl.concat([df] * int(np.ceil(n / df.height))).head(n)
+
+    parts, off = [], 0.0
+    for seg in (tile_to(a, 5.0), tile_to(b, 5.0), tr):  # 5s T0a + 5s T0b + swim
+        d = seg.with_columns(pl.col("t") - pl.col("t").min() + off)
+        parts.append(d)
+        off = float(d["t"].max()) + 1.0 / hz
+    single_csv = _csv(pl.concat(parts))
+
+    payload = pipeline.process_head(
+        {"placement_id": "head", "trial": single_csv, "swimmer_id": "S-SINGLE"})
+    assert "CALIB_FROM_TRIAL_PROVISIONAL" in payload["flags"]
+    assert payload["summary"]["mean_d_pitch_breath"] is not None
+    assert payload["traces"]["t"] and payload["detected_pattern"] in ("Lifter", "Rotator")
+
+
 def test_single_placement_session(session_recordings):
     """A swim with only one sensor still processes."""
     _body, recs = session_recordings

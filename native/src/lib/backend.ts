@@ -9,8 +9,8 @@ import { auth, db, functions, storage } from "./firebase";
 export type Recording = {
   placement_id: string;
   trial: string;
-  t0a: string;
-  t0b: string;
+  t0a?: string; // omitted for single-file capture (backend derives calibration)
+  t0b?: string;
   swimmer_id?: string;
   mount_offset_deg?: number[];
 };

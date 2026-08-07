@@ -29,6 +29,15 @@ Each recording's `trial`/`t0a`/`t0b` is a **Custom-Mode-5 CSV** — inline text,
 a `gs://` Storage path (large real files live in Storage; `process_session`
 downloads them). `wrist_l` + `wrist_r` are fused into one `wrist` payload.
 
+**Two capture shapes** per recording (see `pipeline._calib_frames`):
+
+- **Calibration set** — `trial` + `t0a` + `t0b` (the validated path).
+- **Single file** — `trial` only. The first `_SINGLE_FILE_CAL_WINDOW_S` seconds
+  are taken **provisionally** as the two calibration poses (first half T0a,
+  second half T0b) and the remainder is the swim; the payload is flagged
+  `CALIB_FROM_TRIAL_PROVISIONAL`. Window/pose-order are `# TODO(real-file)` —
+  locked once a real DOT export confirms how calibration is recorded.
+
 ### Accounts & entitlements (Phase C)
 
 - **Auth is attributed, not required.** Anonymous/unauthenticated calls still

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import polars as pl
 
 from swimlab import calibrate, events, io, metrics, sacrum, wrist
 
@@ -44,6 +45,41 @@ def _read_csv(text: str):
         Path(path).unlink(missing_ok=True)
 
 
+# Single-file capture: the calibration poses are held at the START of the one
+# recording. This split is PROVISIONAL and locked once a real DOT export exists.
+_SINGLE_FILE_CAL_WINDOW_S = 10.0  # first N s = the two calibration poses  # TODO(real-file)
+
+
+def _calib_frames(rec: dict):
+    """Return ``(trial, t0a, t0b, extra_flags)`` for a recording, supporting two
+    capture shapes:
+
+    * **Calibration set** — ``rec`` has ``trial`` + ``t0a`` + ``t0b`` (the
+      validated path): read all three as-is.
+    * **Single file** — ``rec`` has only ``trial``: take the first
+      ``_SINGLE_FILE_CAL_WINDOW_S`` seconds as the two calibration poses (first
+      half T0a, second half T0b) and the remainder as the swim, re-zeroed.
+      Emits ``CALIB_FROM_TRIAL_PROVISIONAL`` so the approximation is never
+      silently trusted. Window/pose-order are ``# TODO(real-file)``.
+    """
+    trial = _read_csv(rec["trial"])
+    if rec.get("t0a") and rec.get("t0b"):
+        return trial, _read_csv(rec["t0a"]), _read_csv(rec["t0b"]), []
+    t0 = float(trial["t"].min())
+    win = _SINGLE_FILE_CAL_WINDOW_S
+    cal = trial.filter(pl.col("t") < t0 + win)
+    half = t0 + win / 2.0
+    t0a = cal.filter(pl.col("t") < half)
+    t0b = cal.filter(pl.col("t") >= half)
+    swim = trial.filter(pl.col("t") >= t0 + win)
+    if min(t0a.height, t0b.height) < 2 or swim.height < 2:
+        raise ValueError(
+            "single-file recording too short to split off a "
+            f"{win:g}s calibration window — provide T0a/T0b, or a longer file")
+    swim = swim.with_columns(pl.col("t") - float(swim["t"].min()))  # re-zero to 0
+    return swim, t0a, t0b, ["CALIB_FROM_TRIAL_PROVISIONAL"]
+
+
 def _meta(rec: dict, default_session: str) -> dict:
     return {
         "swimmer_id": rec.get("swimmer_id", "Swimmer"),
@@ -60,8 +96,7 @@ def _meta(rec: dict, default_session: str) -> dict:
 
 def process_head(rec: dict) -> dict:
     """One head recording (+ its T0a/T0b calibration poses) -> head payload."""
-    trial = _read_csv(rec["trial"])
-    t0a, t0b = _read_csv(rec["t0a"]), _read_csv(rec["t0b"])
+    trial, t0a, t0b, xflags = _calib_frames(rec)
     R = calibrate.fit_transform(t0a, t0b)
     pose_flag = calibrate.pose_check(t0a, t0b)
     cal = calibrate.apply(trial, R)
@@ -70,7 +105,7 @@ def process_head(rec: dict) -> dict:
     pb = metrics.per_breath_metrics(cal, breaths)
     summ = metrics.trial_summary(pb)
 
-    flags = [f for f in [pose_flag] if f]
+    flags = [f for f in [pose_flag] if f] + xflags
     if int(summ["n_valid"][0]) < 20:
         flags.append("INSUFFICIENT_CYCLES")
 
@@ -125,15 +160,14 @@ def process_head(rec: dict) -> dict:
 
 
 def process_sacrum(rec: dict, *, pool_length_m: float = 25.0) -> dict:
-    trial = _read_csv(rec["trial"])
-    t0a, t0b = _read_csv(rec["t0a"]), _read_csv(rec["t0b"])
+    trial, t0a, t0b, xflags = _calib_frames(rec)
     R = sacrum.calibrate_transform(t0a, t0b)
     pose_flag = sacrum.pose_check(t0a, t0b)
     cal = sacrum.apply(trial, R)
     ev = sacrum.detect_events(cal, trial)
     mrow = sacrum.metrics(cal, ev, pool_length_m=pool_length_m).row(0, named=True)
 
-    flags = list(mrow.get("flags") or [])
+    flags = list(mrow.get("flags") or []) + xflags
     if pose_flag:
         flags.append(pose_flag)
 
@@ -184,8 +218,7 @@ def process_sacrum(rec: dict, *, pool_length_m: float = 25.0) -> dict:
 
 
 def _wrist_arm(rec: dict, side: str) -> tuple[dict, dict, Any]:
-    trial = _read_csv(rec["trial"])
-    t0a, t0b = _read_csv(rec["t0a"]), _read_csv(rec["t0b"])
+    trial, t0a, t0b, xflags = _calib_frames(rec)
     R = wrist.calibrate_transform(t0a, t0b)
     cal = wrist.apply(trial, R)
     ev = wrist.detect_events(cal, trial)
@@ -207,7 +240,7 @@ def _wrist_arm(rec: dict, side: str) -> tuple[dict, dict, Any]:
             "pull_fraction": _trim(row["pull_fraction"], 3),
             "pitch_amplitude_deg": _trim(row["pitch_amplitude_deg"], 1),
         },
-        "flags": sorted(row.get("flags") or []), "strokes": strokes,
+        "flags": sorted(set((row.get("flags") or []) + xflags)), "strokes": strokes,
         "traces": {"t": [_trim(x, 3) for x in t[::step]], "pitch": [_trim(x, 1) for x in pitch[::step]]},
     }
     return arm, row, ev
