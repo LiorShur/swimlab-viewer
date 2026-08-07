@@ -2,11 +2,23 @@ import { useState } from "react";
 import { PLACEMENT_LABEL, PLACEMENTS, STR, type Lang } from "../lib/i18n";
 import { detectPlacement, type Detection, type Recording } from "../lib/backend";
 
-type Mode = "single" | "calset";
-type Staged = Recording & { _single: boolean; _names: string[] };
+type Staged = Recording & { _single: boolean; _names: string[]; _det?: Detection | null };
 
-// Multi-DOT capture wizard: add one sensor at a time (single file, or trial +
-// two calibration files), review the staged list, then process the session.
+const WRIST_FIRST = ["wrist_l", "wrist_r", "ankle_l", "ankle_r", "uparm_l", "uparm_r", "head", "sacrum"];
+const BODY_FIRST = ["head", "sacrum", "wrist_l", "wrist_r", "ankle_l", "ankle_r", "uparm_l", "uparm_r"];
+
+function family(pl: string): "wrist" | "body" {
+  return pl.startsWith("wrist") || pl.startsWith("ankle") || pl.startsWith("uparm") ? "wrist" : "body";
+}
+function nextPlacement(used: Set<string>, fam: "wrist" | "body" | null): string {
+  const order = fam === "wrist" ? WRIST_FIRST : fam === "body" ? BODY_FIRST : PLACEMENTS;
+  return order.find((p) => !used.has(p)) ?? PLACEMENTS.find((p) => !used.has(p)) ?? "head";
+}
+
+// Capture wizard. Primary flow: select N files (one per sensor) — each becomes a
+// staged sensor with an editable placement; detection runs as a wrist-vs-body
+// verification hint per row, never as the router. Separate-calibration sensors
+// go through the advanced form.
 export function ImportWizard(props: {
   lang: Lang;
   busy: boolean;
@@ -14,122 +26,141 @@ export function ImportWizard(props: {
 }) {
   const t = (k: string) => STR[props.lang][k] ?? k;
   const [staged, setStaged] = useState<Staged[]>([]);
-  const [placement, setPlacement] = useState<string>(PLACEMENTS[0]);
-  const [mode, setMode] = useState<Mode>("single");
-  const [f1, setF1] = useState<File | null>(null); // swim / single
-  const [fa, setFa] = useState<File | null>(null); // T0a
-  const [fb, setFb] = useState<File | null>(null); // T0b
-  const [err, setErr] = useState<string | null>(null);
-  const [detected, setDetected] = useState<Detection | null>(null);
-  const [detecting, setDetecting] = useState(false);
 
-  const used = new Set(staged.map((s) => s.placement_id));
-  const options = PLACEMENTS.filter((p) => !used.has(p) || p === placement);
-  const canAdd = !!f1 && (mode === "single" || (!!fa && !!fb)) && !used.has(placement);
-
-  // On the swim file, run detection as a NON-BLOCKING verification only — the
-  // user's manual pick is authoritative. Detection is reliable at the family
-  // level (wrist vs body), not for head-vs-sacrum, so we only surface a warning
-  // when the detected family disagrees with the chosen placement.
-  async function onTrial(file: File | null) {
-    setF1(file); setDetected(null);
-    if (!file) return;
-    setDetecting(true);
-    try {
-      setDetected(await detectPlacement(await file.text()));
-    } catch { /* verification is best-effort */ } finally { setDetecting(false); }
+  // Stage one row per selected file (single-file sensors), auto-assigning a
+  // distinct placement, biased by the detected family.
+  async function addFiles(files: FileList | null) {
+    if (!files || !files.length) return;
+    const arr = [...files];
+    const used = new Set(staged.map((s) => s.placement_id));
+    const additions: Staged[] = [];
+    for (const f of arr) {
+      const text = await f.text();
+      let det: Detection | null = null;
+      try { det = await detectPlacement(text); } catch { /* best-effort */ }
+      const pl = nextPlacement(used, det ? (det.placement === "wrist" ? "wrist" : "body") : null);
+      used.add(pl);
+      additions.push({ placement_id: pl, trial: text, _single: true, _names: [f.name], _det: det });
+    }
+    setStaged((s) => [...s, ...additions]);
   }
 
-  const detFamily = detected ? (detected.placement === "wrist" ? "wrist" : "body") : null;
-  const pickFamily = placement.startsWith("wrist") ? "wrist" : "body";
-  const mismatch = !!detFamily && detFamily !== pickFamily;
-
-  async function add() {
-    setErr(null);
-    if (used.has(placement)) { setErr(t("wizDup")); return; }
-    if (!f1) return;
-    const rec: Staged = {
-      placement_id: placement,
-      trial: await f1.text(),
-      _single: mode === "single",
-      _names: [f1.name],
-    };
-    if (mode === "calset" && fa && fb) {
-      rec.t0a = await fa.text(); rec.t0b = await fb.text();
-      rec._names.push(fa.name, fb.name);
-    }
-    setStaged((s) => [...s, rec]);
-    setF1(null); setFa(null); setFb(null); setDetected(null);
-    const next = PLACEMENTS.find((p) => !used.has(p) && p !== placement);
-    if (next) setPlacement(next);
+  function setRowPlacement(i: number, pl: string) {
+    setStaged((s) => s.map((r, k) => (k === i ? { ...r, placement_id: pl } : r)));
+  }
+  function removeRow(i: number) {
+    setStaged((s) => s.filter((_, k) => k !== i));
   }
 
   async function process() {
     if (!staged.length) return;
-    const recordings: Recording[] = staged.map(({ _single, _names, ...r }) => r);
-    await props.onProcess(recordings);
+    await props.onProcess(staged.map(({ _single, _names, _det, ...r }) => r));
   }
 
+  const usedAll = staged.map((s) => s.placement_id);
+  const dup = usedAll.length !== new Set(usedAll).size;
   const anySingle = staged.some((s) => s._single);
 
   return (
     <div className="wizard">
-      {/* staged sensors */}
       {staged.length === 0 ? (
         <div className="wiz-empty">{t("wizEmpty")}</div>
       ) : (
         <ul className="wiz-list">
-          {staged.map((s, i) => (
-            <li key={s.placement_id}>
-              <div>
-                <div className="wiz-pl">{PLACEMENT_LABEL[props.lang][s.placement_id]}</div>
-                <div className="wiz-files">{s._single ? t("wizSingle") : t("wizCalset")} · {s._names.join(", ")}</div>
-              </div>
-              <button className="dbtn" onClick={() => setStaged((x) => x.filter((_, k) => k !== i))}>{t("wizRemove")}</button>
-            </li>
-          ))}
+          {staged.map((s, i) => {
+            const detFam = s._det ? (s._det.placement === "wrist" ? "wrist" : "body") : null;
+            const mism = detFam && detFam !== family(s.placement_id);
+            const opts = PLACEMENTS.filter(
+              (p) => p === s.placement_id || !usedAll.includes(p));
+            return (
+              <li key={i} className="wiz-row">
+                <div className="wiz-row-main">
+                  <select value={s.placement_id} onChange={(e) => setRowPlacement(i, e.target.value)}>
+                    {opts.map((p) => <option key={p} value={p}>{PLACEMENT_LABEL[props.lang][p]}</option>)}
+                  </select>
+                  <button className="dbtn" onClick={() => removeRow(i)}>{t("wizRemove")}</button>
+                </div>
+                <div className="wiz-files">
+                  {(s._single ? t("wizSingle") : t("wizCalset"))} · {s._names.join(", ")}
+                </div>
+                {s._det && (
+                  <div className={"wiz-detect" + (mism ? " low" : "")}>
+                    {mism
+                      ? (detFam === "wrist" ? t("wizMismatchWrist") : t("wizMismatchBody"))
+                      : `✓ ${t("wizConsistent")}`}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      {/* add-a-sensor form */}
-      <div className="wiz-add">
-        <div className="wiz-add-title">{t("wizAddSensor")}</div>
-        <label className="wiz-field">
-          <span>{t("wizPlacement")}</span>
-          <select value={placement} onChange={(e) => setPlacement(e.target.value)}>
-            {options.map((p) => <option key={p} value={p}>{PLACEMENT_LABEL[props.lang][p]}</option>)}
-          </select>
-        </label>
-        {(detecting || detected) && (
-          <div className={"wiz-detect" + (mismatch ? " low" : "")}>
-            {detecting
-              ? t("wizDetecting")
-              : mismatch
-                ? (detFamily === "wrist" ? t("wizMismatchWrist") : t("wizMismatchBody"))
-                : `✓ ${t("wizConsistent")}`}
-          </div>
-        )}
-        <label className="wiz-field">
-          <span>{t("wizFiles")}</span>
-          <select value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
-            <option value="single">{t("wizSingle")}</option>
-            <option value="calset">{t("wizCalset")}</option>
-          </select>
-        </label>
+      {/* primary: one file per sensor, multi-select */}
+      <label className="bigcta">
+        <span className="bigcta-ic">＋</span>
+        <span>
+          {t("wizAddFiles")}
+          <span className="bigcta-hint">{t("wizAddFilesHint")}</span>
+        </span>
+        <input type="file" accept=".csv,text/csv" multiple hidden
+               onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ""; }} />
+      </label>
 
-        <FilePick label={t("wizTrial")} file={f1} onPick={onTrial} pick={t("wizPick")} />
-        {mode === "calset" && <FilePick label={t("wizT0a")} file={fa} onPick={setFa} pick={t("wizPick")} />}
-        {mode === "calset" && <FilePick label={t("wizT0b")} file={fb} onPick={setFb} pick={t("wizPick")} />}
-
-        {err && <div className="wiz-err">{err}</div>}
-        <button className="btn" disabled={!canAdd} onClick={add}>＋ {t("wizAddBtn")}</button>
-      </div>
+      <AdvancedAdd lang={props.lang} used={usedAll} onAdd={(rec) => setStaged((s) => [...s, rec])} />
 
       {anySingle && <div className="wiz-note">{t("wizProvisional")}</div>}
+      {dup && <div className="wiz-err">{t("wizDup")}</div>}
 
-      <button className="btn primary wiz-process" disabled={!staged.length || props.busy} onClick={process}>
+      <button className="btn primary wiz-process"
+              disabled={!staged.length || dup || props.busy} onClick={process}>
         {props.busy ? t("processing") : `${t("wizProcess")} (${staged.length})`}
       </button>
+    </div>
+  );
+}
+
+// Advanced: a single sensor whose calibration is two separate files.
+function AdvancedAdd(props: { lang: Lang; used: string[]; onAdd: (rec: Staged) => void }) {
+  const t = (k: string) => STR[props.lang][k] ?? k;
+  const [open, setOpen] = useState(false);
+  const options = PLACEMENTS.filter((p) => !props.used.includes(p));
+  const [placement, setPlacement] = useState<string>(options[0] ?? "head");
+  const [f1, setF1] = useState<File | null>(null);
+  const [fa, setFa] = useState<File | null>(null);
+  const [fb, setFb] = useState<File | null>(null);
+
+  const pl = props.used.includes(placement) ? (options[0] ?? placement) : placement;
+  const canAdd = !!f1 && !!fa && !!fb && !props.used.includes(pl);
+
+  async function add() {
+    if (!f1 || !fa || !fb) return;
+    props.onAdd({
+      placement_id: pl, trial: await f1.text(), t0a: await fa.text(), t0b: await fb.text(),
+      _single: false, _names: [f1.name, fa.name, fb.name], _det: null,
+    });
+    setF1(null); setFa(null); setFb(null);
+  }
+
+  return (
+    <div className="wiz-adv">
+      <button className="wiz-adv-toggle" onClick={() => setOpen((o) => !o)}>
+        {open ? "▾" : "▸"} {t("wizAdvanced")}
+      </button>
+      {open && (
+        <div className="wiz-add">
+          <label className="wiz-field">
+            <span>{t("wizPlacement")}</span>
+            <select value={pl} onChange={(e) => setPlacement(e.target.value)}>
+              {options.map((p) => <option key={p} value={p}>{PLACEMENT_LABEL[props.lang][p]}</option>)}
+            </select>
+          </label>
+          <FilePick label={t("wizTrial")} file={f1} onPick={setF1} pick={t("wizPick")} />
+          <FilePick label={t("wizT0a")} file={fa} onPick={setFa} pick={t("wizPick")} />
+          <FilePick label={t("wizT0b")} file={fb} onPick={setFb} pick={t("wizPick")} />
+          <button className="btn" disabled={!canAdd} onClick={add}>＋ {t("wizAdvancedAdd")}</button>
+        </div>
+      )}
     </div>
   );
 }

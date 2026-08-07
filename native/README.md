@@ -24,10 +24,10 @@ native/
     components/
       Splash / Onboarding / BottomNav   launch + first-run + Home/Capture/History/Settings nav
       Home / Capture / Settings         screens (Home hosts the dashboards)
-      ImportWizard.tsx   multi-DOT capture: add sensors (single file, or
-                         trial + 2 calibration), pick placement (detection runs
-                         as a wrist-vs-body sanity check, not an auto-router),
-                         then process
+      ImportWizard.tsx   multi-DOT capture: select N files (one sensor per file),
+                         tag each placement (detection runs as a wrist-vs-body
+                         sanity check, not an auto-router); separate-calibration
+                         sensors via the advanced form; then process
       AuthGate.tsx       Google + Email/Password sign-in
       Dashboard.tsx      banner + labelled KPIs + trace chart + playback +
                          default rule-based findings/coaching + AI narrate
