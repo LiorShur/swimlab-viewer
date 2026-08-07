@@ -1,10 +1,11 @@
 """Infer sensor placement (head / sacrum / wrist) from a raw DOT recording.
 
-Calibration-INDEPENDENT: it reads only gravity-referenced tilt (from the
-quaternion), gyro energy, and the pitch-event rate — so it runs on the raw file
-before any T0 transform. Used for *infer-and-confirm*: the app pre-fills the
-placement guess with a confidence, the user confirms/overrides. It never routes
-silently.
+Calibration-INDEPENDENT **and mount-orientation-invariant**: it reads only the
+angular travel of the gravity direction and gyro (angular-speed) magnitude — so
+it runs on the raw file before any T0 transform and is unaffected by how the
+sensor happens to be rotated on the body. Used for *infer-and-confirm*: the app
+pre-fills the placement guess with a confidence, the user confirms/overrides. It
+never routes silently.
 
 Not attempted here: left vs right (ambiguous from one sensor) — the caller
 confirms the side. Ankle / upper-arm are out of scope until the engine has
@@ -19,43 +20,42 @@ recordings before trusting the head-vs-sacrum split.
 from __future__ import annotations
 
 import numpy as np
-from scipy.signal import find_peaks
 from scipy.spatial.transform import Rotation
 
-# Feature order: [pitch_amp°, roll/pitch ratio, pitch-peak rate /s, gyro RMS °/s]
-_FEATURES = ("pitch_amp_deg", "roll_pitch_ratio", "pitch_peak_rate_hz", "gyro_rms_dps")
+# Features must be invariant to the sensor's *mounting orientation* — we run
+# before calibration, so anything that depends on which sensor axis points where
+# (e.g. per-axis pitch vs roll amplitude) is unusable: a constant mount rotation
+# would swing it wildly and mislabel the placement. These three are invariant:
+#   grav_span_deg  — angular travel of the gravity direction (how much the sensor
+#                    tilts overall, regardless of axis)
+#   gyro_rms_dps   — RMS angular speed (|ω| is frame-independent)
+#   gyro_p95_dps   — peak angular speed (the wrist's fast arm rotation stands out)
+_FEATURES = ("grav_span_deg", "gyro_rms_dps", "gyro_p95_dps")
 _CENTROIDS = {
-    "head":   np.array([32.2, 3.03, 0.22, 94.6]),
-    "sacrum": np.array([22.8, 4.35, 0.32, 106.1]),
-    "wrist":  np.array([109.8, 0.31, 0.32, 123.8]),
+    "head":   np.array([55.8, 94.6, 123.0]),
+    "sacrum": np.array([49.7, 106.1, 122.5]),
+    "wrist":  np.array([63.0, 123.8, 187.1]),
 }
-# Per-feature scale (pooled within-class SD; pitch-peak-rate floored so a
-# possibly-noisy real-world feature isn't over-weighted).
-_SCALE = np.array([5.0, 0.6, 0.06, 4.0])
+# Per-feature scale (pooled within-class SD).
+_SCALE = np.array([7.0, 3.6, 9.5])
 
 
 def extract_features(df) -> dict:
-    """Calibration-free features from a canonical DOT dataframe."""
-    t = df["t"].to_numpy()
-    dur = float(t[-1] - t[0]) or 1.0
-    fs = 1.0 / float(np.median(np.diff(t)))
-
+    """Mount-invariant, calibration-free features from a canonical DOT dataframe."""
     quat = np.column_stack([df["quat_x"], df["quat_y"], df["quat_z"], df["quat_w"]])  # xyzw
     g = Rotation.from_quat(quat).inv().apply(np.tile([0.0, 0.0, 1.0], (len(df), 1)))  # gravity in sensor frame
-    pitch = np.degrees(np.arctan2(g[:, 0], g[:, 2]))
-    roll = np.degrees(np.arctan2(g[:, 1], g[:, 2]))
-    amp = lambda x: float(np.percentile(x, 95) - np.percentile(x, 5))
-    pa, ra = amp(pitch), amp(roll)
+    gm = g.mean(axis=0)
+    gm = gm / (np.linalg.norm(gm) or 1.0)
+    # angle of each gravity sample from the mean gravity direction — invariant to
+    # a constant rotation of the whole trajectory (rotating the sphere preserves
+    # angles between points).
+    grav_span = float(np.percentile(np.degrees(np.arccos(np.clip(g @ gm, -1.0, 1.0))), 95))
 
-    gyr = np.column_stack([df["gyr_x"], df["gyr_y"], df["gyr_z"]])
-    gyr_rms = float(np.sqrt(np.mean(np.sum(gyr ** 2, axis=1))))
-
-    peaks, _ = find_peaks(pitch - np.median(pitch), prominence=8, distance=int(max(1, 1.5 * fs)))
+    gyr = np.linalg.norm(np.column_stack([df["gyr_x"], df["gyr_y"], df["gyr_z"]]), axis=1)
     return {
-        "pitch_amp_deg": round(pa, 2),
-        "roll_pitch_ratio": round(ra / max(pa, 1.0), 3),
-        "pitch_peak_rate_hz": round(len(peaks) / dur, 4),
-        "gyro_rms_dps": round(gyr_rms, 2),
+        "grav_span_deg": round(grav_span, 2),
+        "gyro_rms_dps": round(float(np.sqrt(np.mean(gyr ** 2))), 2),
+        "gyro_p95_dps": round(float(np.percentile(gyr, 95)), 2),
     }
 
 

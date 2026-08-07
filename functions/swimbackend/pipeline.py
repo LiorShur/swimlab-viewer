@@ -267,6 +267,47 @@ def process_wrist(rec_l: dict, rec_r: dict) -> dict:
     return payload
 
 
+def _single_wrist_findings(side: str, amp, rate) -> dict:
+    """A minimal bilingual finding when only one wrist was recorded (no L/R
+    symmetry to report). Keeps the 'never silently drop data' promise."""
+    name = {"R": "right", "L": "left"}[side]
+    he_name = {"R": "ימין", "L": "שמאל"}[side]
+    return {
+        "placement": "wrist",
+        "en": {
+            "headline": f"{name.capitalize()} forearm",
+            "summary": (f"Only the {name} wrist was recorded — stroke rate "
+                        f"{rate}/min, forearm pitch range {amp}°. Add the other "
+                        f"wrist to compare left/right symmetry."),
+            "coaching": [],
+        },
+        "he": {
+            "headline": f"אמה {he_name}",
+            "summary": (f"נרשמה רק יד {he_name} — קצב תנועות {rate} לדקה, טווח "
+                        f"פיץ׳ אמה {amp}°. הוסף את פרק היד השני כדי להשוות "
+                        f"סימטריית ימין/שמאל."),
+            "coaching": [],
+        },
+    }
+
+
+def process_wrist_single(rec: dict, side: str) -> dict:
+    """One wrist only -> a single-arm wrist payload (no fusion/symmetry)."""
+    arm, _row, _ev = _wrist_arm(rec, side)
+    m = _meta(rec, "T7 — 4×25 m front crawl")
+    payload = {
+        "placement": "wrist",
+        "swimmer_id": m["swimmer_id"], "session": m["session"],
+        "mount_offset_deg": [_trim(v, 1) for v in m["mount_offset_deg"]], "archetype": m["archetype"],
+        "arms": {side: arm},
+        "single_arm": side,
+        "flags": sorted(set(arm["flags"]) | {"SINGLE_WRIST"}),
+    }
+    payload["findings"] = _single_wrist_findings(
+        side, arm["summary"]["pitch_amplitude_deg"], arm["summary"]["stroke_rate_cpm"])
+    return payload
+
+
 # --------------------------------------------------------------------------- #
 # Session orchestration
 # --------------------------------------------------------------------------- #
@@ -294,6 +335,9 @@ def process_session(recordings: list[dict], *, pool_length_m: float = 25.0) -> d
         placements["sacrum"] = _bundle(process_sacrum(by["sacrum"], pool_length_m=pool_length_m))
     if "wrist_l" in by and "wrist_r" in by:
         placements["wrist"] = _bundle(process_wrist(by["wrist_l"], by["wrist_r"]))
+    elif "wrist_l" in by or "wrist_r" in by:  # one wrist only — don't drop it
+        side_key = "wrist_l" if "wrist_l" in by else "wrist_r"
+        placements["wrist"] = _bundle(process_wrist_single(by[side_key], side_key[-1].upper()))
 
     default_placement = ("sacrum" if "sacrum" in placements
                          else next(iter(placements), None))

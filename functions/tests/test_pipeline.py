@@ -151,3 +151,15 @@ def test_single_placement_session(session_recordings):
     out = pipeline.process_session(sacrum_only)
     assert set(out["placements"]) == {"sacrum"}
     assert out["default_placement"] == "sacrum"
+
+
+def test_single_wrist_is_not_dropped(session_recordings):
+    """One wrist sensor still yields a (single-arm) wrist payload, not nothing."""
+    _body, recs = session_recordings
+    wrist_r_only = [r for r in recs if r["placement_id"] == "wrist_r"]
+    out = pipeline.process_session(wrist_r_only)
+    assert set(out["placements"]) == {"wrist"}
+    w = out["placements"]["wrist"]["sessions"]["S-TEST"]
+    assert set(w["arms"]) == {"R"} and w["single_arm"] == "R"
+    assert "SINGLE_WRIST" in w["flags"]
+    assert w["findings"]["en"]["headline"] and w["findings"]["he"]["headline"]

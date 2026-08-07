@@ -113,6 +113,7 @@ ul.wiz-list li { display: flex; align-items: center; justify-content: space-betw
 .tab { padding: 8px 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
   border-radius: 10px; cursor: pointer; font-size: 14px; font-family: var(--mono); }
 .tab.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tab-ic { margin-inline-end: 6px; }
 
 .pattern { font-size: 20px; font-weight: 680; margin: 12px 0 4px; color: var(--accent); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }

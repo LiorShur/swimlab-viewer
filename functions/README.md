@@ -26,12 +26,17 @@ functions/
 | `narrate` | paid* | `{payload, placement?}` | `{narratives: {en, he}, model, placement, tier}` |
 | `set_tier` | admin | `{uid, tier: 'free'\|'paid'}` | `{uid, tier}` |
 
-`detect_placement` infers the placement *type* from one raw recording
-(calibration-free features → nearest synth-tuned centroid; see
-`placement_detect.py`). Side (L/R) isn't inferable from one sensor — the caller
-confirms it. Head-vs-sacrum is correct ~99% on synth but with a lower, honest
-confidence that drives the app's infer-and-confirm UI. `# TODO(real-file)`:
-reconfirm the centroids on a real export.
+`detect_placement` infers the placement *type* from one raw recording using
+**mount-orientation-invariant** features (angular travel of the gravity
+direction + gyro RMS/peak — nothing axis-dependent, so a differently-mounted
+sensor can't flip the label; see `placement_detect.py`). Side (L/R) isn't
+inferable from one sensor — the caller confirms it. Wrist is unambiguous;
+head-vs-sacrum is correct ~99% on synth but at a lower, honest confidence that
+drives the app's infer-and-confirm UI. `# TODO(real-file)`: reconfirm the
+centroids on a real export.
+
+A **lone wrist** (only `wrist_l` or `wrist_r`) is processed as a single-arm
+wrist payload (flagged `SINGLE_WRIST`), never silently dropped.
 
 Each recording's `trial`/`t0a`/`t0b` is a **Custom-Mode-5 CSV** — inline text, or
 a `gs://` Storage path (large real files live in Storage; `process_session`

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { STR, type Lang } from "../lib/i18n";
+import { PLACEMENT_LABEL, STR, type Lang } from "../lib/i18n";
 import { Dashboard } from "./Dashboard";
 import type { Bundle } from "../lib/backend";
 
@@ -32,12 +32,18 @@ export function Home(props: {
     );
   }
 
+  const ICON: Record<string, string> = { head: "🏊", sacrum: "🎯", wrist: "⌚" };
   return (
     <div className="screen">
-      {placements.length > 1 && (
+      {/* placement header/tabs — always shown so the swim is labelled, even
+          with a single sensor (a single tab acts as the header). */}
+      {placements.length > 0 && (
         <div className="tabs">
           {placements.map((p) => (
-            <button key={p} className={"tab" + (p === props.active ? " on" : "")} onClick={() => props.onActive(p)}>{p}</button>
+            <button key={p} className={"tab" + (p === props.active ? " on" : "")} onClick={() => props.onActive(p)}>
+              <span className="tab-ic">{ICON[p] || "•"}</span>
+              {PLACEMENT_LABEL[props.lang][p] ?? p}
+            </button>
           ))}
         </div>
       )}
