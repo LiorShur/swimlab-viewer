@@ -27,23 +27,22 @@ export function ImportWizard(props: {
   const options = PLACEMENTS.filter((p) => !used.has(p) || p === placement);
   const canAdd = !!f1 && (mode === "single" || (!!fa && !!fb)) && !used.has(placement);
 
-  // On the swim file, infer the placement type and pre-select it (side stays the
-  // user's to confirm). Non-blocking: failures just leave the picker untouched.
+  // On the swim file, run detection as a NON-BLOCKING verification only — the
+  // user's manual pick is authoritative. Detection is reliable at the family
+  // level (wrist vs body), not for head-vs-sacrum, so we only surface a warning
+  // when the detected family disagrees with the chosen placement.
   async function onTrial(file: File | null) {
     setF1(file); setDetected(null);
     if (!file) return;
     setDetecting(true);
     try {
-      const text = await file.text();
-      const d = await detectPlacement(text);
-      setDetected(d);
-      if (d.placement === "wrist") {
-        if (!placement.startsWith("wrist")) setPlacement("wrist_r");
-      } else if (!used.has(d.placement)) {
-        setPlacement(d.placement);
-      }
-    } catch { /* detection is best-effort */ } finally { setDetecting(false); }
+      setDetected(await detectPlacement(await file.text()));
+    } catch { /* verification is best-effort */ } finally { setDetecting(false); }
   }
+
+  const detFamily = detected ? (detected.placement === "wrist" ? "wrist" : "body") : null;
+  const pickFamily = placement.startsWith("wrist") ? "wrist" : "body";
+  const mismatch = !!detFamily && detFamily !== pickFamily;
 
   async function add() {
     setErr(null);
@@ -102,12 +101,12 @@ export function ImportWizard(props: {
           </select>
         </label>
         {(detecting || detected) && (
-          <div className={"wiz-detect" + (detected && detected.confidence < 0.4 ? " low" : "")}>
+          <div className={"wiz-detect" + (mismatch ? " low" : "")}>
             {detecting
               ? t("wizDetecting")
-              : `${t("wizDetected")}: ${PLACEMENT_LABEL[props.lang][detected!.placement] ?? detected!.placement}` +
-                ` · ${Math.round(detected!.confidence * 100)}%` +
-                (detected!.confidence < 0.4 ? ` · ${t("wizConfirm")}` : "")}
+              : mismatch
+                ? (detFamily === "wrist" ? t("wizMismatchWrist") : t("wizMismatchBody"))
+                : `✓ ${t("wizConsistent")}`}
           </div>
         )}
         <label className="wiz-field">
