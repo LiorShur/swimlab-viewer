@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { PLACEMENTS, PLACEMENT_LABEL, STR, type Lang } from "../lib/i18n";
-import type { Recording } from "../lib/backend";
+import { PLACEMENT_LABEL, PLACEMENTS, STR, type Lang } from "../lib/i18n";
+import { detectPlacement, type Detection, type Recording } from "../lib/backend";
 
 type Mode = "single" | "calset";
 type Staged = Recording & { _single: boolean; _names: string[] };
@@ -20,10 +20,30 @@ export function ImportWizard(props: {
   const [fa, setFa] = useState<File | null>(null); // T0a
   const [fb, setFb] = useState<File | null>(null); // T0b
   const [err, setErr] = useState<string | null>(null);
+  const [detected, setDetected] = useState<Detection | null>(null);
+  const [detecting, setDetecting] = useState(false);
 
   const used = new Set(staged.map((s) => s.placement_id));
   const options = PLACEMENTS.filter((p) => !used.has(p) || p === placement);
   const canAdd = !!f1 && (mode === "single" || (!!fa && !!fb)) && !used.has(placement);
+
+  // On the swim file, infer the placement type and pre-select it (side stays the
+  // user's to confirm). Non-blocking: failures just leave the picker untouched.
+  async function onTrial(file: File | null) {
+    setF1(file); setDetected(null);
+    if (!file) return;
+    setDetecting(true);
+    try {
+      const text = await file.text();
+      const d = await detectPlacement(text);
+      setDetected(d);
+      if (d.placement === "wrist") {
+        if (!placement.startsWith("wrist")) setPlacement("wrist_r");
+      } else if (!used.has(d.placement)) {
+        setPlacement(d.placement);
+      }
+    } catch { /* detection is best-effort */ } finally { setDetecting(false); }
+  }
 
   async function add() {
     setErr(null);
@@ -40,7 +60,7 @@ export function ImportWizard(props: {
       rec._names.push(fa.name, fb.name);
     }
     setStaged((s) => [...s, rec]);
-    setF1(null); setFa(null); setFb(null);
+    setF1(null); setFa(null); setFb(null); setDetected(null);
     const next = PLACEMENTS.find((p) => !used.has(p) && p !== placement);
     if (next) setPlacement(next);
   }
@@ -81,6 +101,15 @@ export function ImportWizard(props: {
             {options.map((p) => <option key={p} value={p}>{PLACEMENT_LABEL[props.lang][p]}</option>)}
           </select>
         </label>
+        {(detecting || detected) && (
+          <div className={"wiz-detect" + (detected && detected.confidence < 0.4 ? " low" : "")}>
+            {detecting
+              ? t("wizDetecting")
+              : `${t("wizDetected")}: ${PLACEMENT_LABEL[props.lang][detected!.placement] ?? detected!.placement}` +
+                ` · ${Math.round(detected!.confidence * 100)}%` +
+                (detected!.confidence < 0.4 ? ` · ${t("wizConfirm")}` : "")}
+          </div>
+        )}
         <label className="wiz-field">
           <span>{t("wizFiles")}</span>
           <select value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
@@ -89,7 +118,7 @@ export function ImportWizard(props: {
           </select>
         </label>
 
-        <FilePick label={mode === "single" ? t("wizTrial") : t("wizTrial")} file={f1} onPick={setF1} pick={t("wizPick")} />
+        <FilePick label={t("wizTrial")} file={f1} onPick={onTrial} pick={t("wizPick")} />
         {mode === "calset" && <FilePick label={t("wizT0a")} file={fa} onPick={setFa} pick={t("wizPick")} />}
         {mode === "calset" && <FilePick label={t("wizT0b")} file={fb} onPick={setFb} pick={t("wizPick")} />}
 

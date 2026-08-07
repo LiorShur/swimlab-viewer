@@ -34,6 +34,20 @@ export type SwimDoc = {
 
 const _process = httpsCallable(functions, "process_session", { timeout: 300000 });
 const _narrate = httpsCallable(functions, "narrate", { timeout: 120000 });
+const _detect = httpsCallable(functions, "detect_placement", { timeout: 60000 });
+
+export type Detection = {
+  placement: "head" | "sacrum" | "wrist";
+  confidence: number;
+  scores: Record<string, number>;
+  features: Record<string, number>;
+};
+
+// Infer a sensor's placement type from one raw recording (side stays user-confirmed).
+export async function detectPlacement(csv: string): Promise<Detection> {
+  const { data } = await _detect({ csv });
+  return data as Detection;
+}
 
 export async function processSession(
   recordings: Recording[],

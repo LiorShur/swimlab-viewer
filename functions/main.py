@@ -37,6 +37,7 @@ from firebase_functions.params import SecretParam  # noqa: E402
 
 from swimbackend import narrate as narrate_mod  # noqa: E402
 from swimbackend import pipeline  # noqa: E402
+from swimbackend import placement_detect  # noqa: E402
 
 # Initialise the Admin SDK once (Firestore + Storage access from the function).
 try:
@@ -209,6 +210,25 @@ def process_session(req: https_fn.CallableRequest):
             # bundle with a note so the client can surface it.
             bundle["saveError"] = str(e)
     return bundle
+
+
+@https_fn.on_call(memory=options.MemoryOption.MB_512, timeout_sec=60, cors=_CORS)
+def detect_placement(req: https_fn.CallableRequest):
+    """Infer a sensor's placement from one raw recording (for infer-and-confirm).
+
+    Request data: ``{csv}`` — inline Custom-Mode-5 text or a ``gs://`` path.
+    Returns ``{placement: 'head'|'sacrum'|'wrist', confidence, scores, features}``.
+    The caller confirms the side (L/R) — that isn't inferable from one sensor.
+    """
+    data = req.data or {}
+    csv = data.get("csv") or data.get("trial")
+    if not csv:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "csv required")
+    try:
+        text = _resolve_recordings([{"trial": csv}])[0]["trial"]  # resolves gs:// or passes text
+        return placement_detect.infer_placement(pipeline._read_csv(text))
+    except Exception as e:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, f"detection failed: {e}")
 
 
 @https_fn.on_call(secrets=[ANTHROPIC_API_KEY], memory=options.MemoryOption.MB_512,

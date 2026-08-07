@@ -25,7 +25,8 @@ native/
       Splash / Onboarding / BottomNav   launch + first-run + Home/Capture/History/Settings nav
       Home / Capture / Settings         screens (Home hosts the dashboards)
       ImportWizard.tsx   multi-DOT capture: add sensors (single file, or
-                         trial + 2 calibration), tag placement, then process
+                         trial + 2 calibration), auto-detect + confirm placement,
+                         then process
       AuthGate.tsx       Google + Email/Password sign-in
       Dashboard.tsx      banner + labelled KPIs + trace chart + playback +
                          default rule-based findings/coaching + AI narrate

@@ -90,6 +90,9 @@ ul.wiz-list li { display: flex; align-items: center; justify-content: space-betw
 .wiz-file-btn { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px;
   padding: 9px 12px; font-size: 13px; color: var(--text); word-break: break-all; }
 .wiz-err { color: #ff8a5b; font-size: 12.5px; margin-bottom: 8px; }
+.wiz-detect { font-size: 12px; color: var(--good, #3fb950); background: var(--panel2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin-bottom: 10px; }
+.wiz-detect.low { color: var(--warn, #d29922); }
 .wiz-note { font-size: 12px; color: var(--muted); background: var(--panel2); border: 1px solid var(--line);
   border-radius: 8px; padding: 9px 12px; margin: 12px 0; }
 .wiz-process { width: 100%; margin-top: 12px; padding: 12px; }
