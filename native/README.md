@@ -20,7 +20,10 @@ native/
     lib/firebase.ts      Firebase init from Vite env (.env)
     lib/backend.ts       process_session / narrate callables + history/bundle reads
     lib/i18n.ts          EN/HE strings (Hebrew default, RTL)
+    App.tsx              shell: splash -> onboarding -> auth -> tabbed nav
     components/
+      Splash / Onboarding / BottomNav   launch + first-run + Home/Capture/History/Settings nav
+      Home / Capture / Settings         screens (Home hosts the dashboards)
       AuthGate.tsx       Google + Email/Password sign-in
       Dashboard.tsx      banner + labelled KPIs + trace chart + playback +
                          default rule-based findings/coaching + AI narrate

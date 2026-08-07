@@ -1,40 +1,45 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "./lib/firebase";
 import { STR, dirFor, type Lang } from "./lib/i18n";
 import { AuthGate } from "./components/AuthGate";
-import { Dashboard } from "./components/Dashboard";
+import { Splash } from "./components/Splash";
+import { Onboarding } from "./components/Onboarding";
+import { BottomNav, type Tab } from "./components/BottomNav";
+import { Home } from "./components/Home";
+import { Capture } from "./components/Capture";
 import { History } from "./components/History";
+import { Settings } from "./components/Settings";
 import { filesToRecordings } from "./ble/dot";
 import { isUpgradeRequired, narrate, processSession, type Bundle } from "./lib/backend";
 
 const newSwimId = () => `swim-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+const ONBOARDED = "swimlab.onboarded";
 
 export default function App() {
-  const [lang, setLang] = useState<Lang>("he");
+  const [lang, setLang] = useState<Lang>((localStorage.getItem("swimlab.lang") as Lang) || "he");
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [onboarded, setOnboarded] = useState(!!localStorage.getItem(ONBOARDED));
+  const [tab, setTab] = useState<Tab>("home");
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [active, setActive] = useState<string>("");
   const [busy, setBusy] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
   const t = (k: string) => STR[lang][k] ?? k;
 
   useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u); setReady(true); }), []);
-  useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = dirFor(lang); }, [lang]);
-
-  const placements = useMemo(() => (bundle ? Object.keys(bundle.placements) : []), [bundle]);
-  const session = useMemo(() => {
-    if (!bundle || !active) return null;
-    const pl = bundle.placements[active];
-    return pl ? pl.sessions[pl.default] ?? Object.values(pl.sessions)[0] : null;
-  }, [bundle, active]);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dirFor(lang);
+    localStorage.setItem("swimlab.lang", lang);
+  }, [lang]);
 
   function openBundle(b: Bundle) {
     setBundle(b);
     setActive(b.default_placement && b.placements[b.default_placement] ? b.default_placement : Object.keys(b.placements)[0] || "");
-    setShowHistory(false);
+    setTab("home");
   }
 
   async function handleFiles(files: FileList | null) {
@@ -46,8 +51,7 @@ export default function App() {
       if (csvs.length) {
         const { recordings, unmatched } = await filesToRecordings(csvs);
         if (!recordings.length) { alert("Couldn't match placement/pose in the CSV names.\n" + unmatched.join(", ")); return; }
-        const b = await processSession(recordings, { swimId: user ? newSwimId() : undefined });
-        openBundle(b);
+        openBundle(await processSession(recordings, { swimId: user ? newSwimId() : undefined }));
       } else {
         const obj = JSON.parse(await arr[0].text());
         if (obj.recordings || obj.data?.recordings) {
@@ -67,46 +71,38 @@ export default function App() {
     try {
       const res = await narrate(sess, sess.placement || active);
       sess._nar = res.narratives;
-      setBundle((b) => (b ? { ...b } : b)); // force re-render
+      setBundle((b) => (b ? { ...b } : b));
     } catch (e: any) {
       alert(isUpgradeRequired(e) ? t("upgrade") : "Narration failed: " + (e?.message || e));
     }
   }
 
+  if (showSplash) return <Splash lang={lang} onDone={() => setShowSplash(false)} />;
+  if (!onboarded) return <Onboarding lang={lang} onDone={() => { localStorage.setItem(ONBOARDED, "1"); setOnboarded(true); }} />;
   if (!ready) return <div className="loading">…</div>;
   if (!user) return <AuthGate lang={lang} />;
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">swimlab <span className="tag">· {t("tagline")}</span></div>
-        <div className="tools">
-          <button className="btn" onClick={() => setLang(lang === "he" ? "en" : "he")}>🌐 {t("langToggle")}</button>
-          <label className="btn">
-            {busy ? t("processing") : `⬆ ${t("importRec")}`}
-            <input type="file" accept=".csv,text/csv,application/json,.json" multiple hidden
-                   onChange={(e) => { handleFiles(e.target.files); e.currentTarget.value = ""; }} />
-          </label>
-          <button className="btn" onClick={() => setShowHistory((s) => !s)}>⌛ {t("history")}</button>
-          <button className="btn" onClick={() => signOut(auth)} title={user.email || ""}>⎋ {t("signOut")}</button>
-        </div>
+      <header className="brandbar">
+        <span className="brand">swimlab</span>
       </header>
 
-      {showHistory && <History lang={lang} onOpen={openBundle} />}
+      <div className="screenwrap">
+        {tab === "home" && (
+          <Home lang={lang} bundle={bundle} active={active} onActive={setActive}
+                onNarrate={onNarrate} goCapture={() => setTab("capture")} />
+        )}
+        {tab === "capture" && <Capture lang={lang} busy={busy} onFiles={handleFiles} />}
+        {tab === "history" && <History lang={lang} onOpen={openBundle} />}
+        {tab === "settings" && (
+          <Settings lang={lang} user={user} tier="free"
+                    onToggleLang={() => setLang(lang === "he" ? "en" : "he")}
+                    onSignOut={() => signOut(auth)} />
+        )}
+      </div>
 
-      {placements.length > 0 && (
-        <div className="tabs">
-          {placements.map((p) => (
-            <button key={p} className={"tab" + (p === active ? " on" : "")} onClick={() => setActive(p)}>{p}</button>
-          ))}
-        </div>
-      )}
-
-      {session ? (
-        <Dashboard lang={lang} placement={active} session={session} onNarrate={onNarrate} />
-      ) : (
-        <div className="empty">{t("importRec")} · {t("connectSensor")}</div>
-      )}
+      <BottomNav lang={lang} tab={tab} onTab={setTab} />
     </div>
   );
 }
