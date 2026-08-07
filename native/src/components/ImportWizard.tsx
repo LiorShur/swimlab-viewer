@@ -26,23 +26,28 @@ export function ImportWizard(props: {
 }) {
   const t = (k: string) => STR[props.lang][k] ?? k;
   const [staged, setStaged] = useState<Staged[]>([]);
+  const [staging, setStaging] = useState(false);
 
-  // Stage one row per selected file (single-file sensors), auto-assigning a
-  // distinct placement, biased by the detected family.
+  // Stage one row per selected file (single-file sensors). Placement defaults are
+  // assigned SEQUENTIALLY (predictable) — detection is too fragile to pick the
+  // placement, so the user sets it; detection only powers the verification badge.
   async function addFiles(files: FileList | null) {
     if (!files || !files.length) return;
     const arr = [...files];
-    const used = new Set(staged.map((s) => s.placement_id));
-    const additions: Staged[] = [];
-    for (const f of arr) {
-      const text = await f.text();
-      let det: Detection | null = null;
-      try { det = await detectPlacement(text); } catch { /* best-effort */ }
-      const pl = nextPlacement(used, det ? (det.placement === "wrist" ? "wrist" : "body") : null);
-      used.add(pl);
-      additions.push({ placement_id: pl, trial: text, _single: true, _names: [f.name], _det: det });
-    }
-    setStaged((s) => [...s, ...additions]);
+    setStaging(true);
+    try {
+      const used = new Set(staged.map((s) => s.placement_id));
+      const additions: Staged[] = [];
+      for (const f of arr) {
+        const text = await f.text();
+        let det: Detection | null = null;
+        try { det = await detectPlacement(text); } catch { /* best-effort */ }
+        const pl = nextPlacement(used, null);   // sequential, not detector-driven
+        used.add(pl);
+        additions.push({ placement_id: pl, trial: text, _single: true, _names: [f.name], _det: det });
+      }
+      setStaged((s) => [...s, ...additions]);
+    } finally { setStaging(false); }
   }
 
   function setRowPlacement(i: number, pl: string) {
@@ -68,7 +73,9 @@ export function ImportWizard(props: {
       ) : (
         <ul className="wiz-list">
           {staged.map((s, i) => {
-            const detFam = s._det ? (s._det.placement === "wrist" ? "wrist" : "body") : null;
+            // Only trust the detector's family verdict when it's reasonably sure.
+            const detFam = s._det && s._det.confidence >= 0.5
+              ? (s._det.placement === "wrist" ? "wrist" : "body") : null;
             const mism = detFam && detFam !== family(s.placement_id);
             const opts = PLACEMENTS.filter(
               (p) => p === s.placement_id || !usedAll.includes(p));
@@ -83,7 +90,7 @@ export function ImportWizard(props: {
                 <div className="wiz-files">
                   {(s._single ? t("wizSingle") : t("wizCalset"))} · {s._names.join(", ")}
                 </div>
-                {s._det && (
+                {detFam && (
                   <div className={"wiz-detect" + (mism ? " low" : "")}>
                     {mism
                       ? (detFam === "wrist" ? t("wizMismatchWrist") : t("wizMismatchBody"))
@@ -103,9 +110,13 @@ export function ImportWizard(props: {
           {t("wizAddFiles")}
           <span className="bigcta-hint">{t("wizAddFilesHint")}</span>
         </span>
-        <input type="file" accept=".csv,text/csv" multiple hidden
+        <input type="file" accept=".csv,text/csv" multiple hidden disabled={staging}
                onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ""; }} />
       </label>
+
+      {staging && (
+        <div className="wiz-inspecting"><span className="spinner" /> {t("wizInspecting")}</div>
+      )}
 
       <AdvancedAdd lang={props.lang} used={usedAll} onAdd={(rec) => setStaged((s) => [...s, rec])} />
 

@@ -80,6 +80,31 @@ def _calib_frames(rec: dict):
     return swim, t0a, t0b, ["CALIB_FROM_TRIAL_PROVISIONAL"]
 
 
+def _safe_findings(payload: dict) -> dict:
+    """findings.findings_for, but never fatal. If detailed findings can't be
+    computed (e.g. degenerate metrics from a single file with no real
+    calibration → None values the templates can't format), return a neutral
+    bilingual finding and flag the payload rather than 500 the whole request."""
+    try:
+        return findings.findings_for(payload)
+    except Exception:
+        payload["flags"] = sorted(set((payload.get("flags") or []) + ["FINDINGS_INCOMPLETE"]))
+        return {
+            "placement": payload.get("placement", "unknown"),
+            "en": {"headline": "Analysis incomplete",
+                   "summary": ("Couldn't compute detailed findings for this recording — "
+                               "calibration or cycle detection looks incomplete. If you used a "
+                               "single file, provide its calibration or a recording with the T0 "
+                               "poses at the start."),
+                   "coaching": []},
+            "he": {"headline": "ניתוח לא שלם",
+                   "summary": ("לא ניתן לחשב ממצאים מפורטים להקלטה זו — נראה שהכיול או זיהוי "
+                               "המחזורים אינו שלם. אם השתמשת בקובץ יחיד, ספק את קובצי הכיול או "
+                               "הקלטה שבה תנוחות ה-T0 בתחילתה."),
+                   "coaching": []},
+        }
+
+
 def _meta(rec: dict, default_session: str) -> dict:
     return {
         "swimmer_id": rec.get("swimmer_id", "Swimmer"),
@@ -150,7 +175,7 @@ def process_head(rec: dict) -> dict:
         "observed_apex": {"apex_pitch": _trim(mean_dpitch, 1),
                           "apex_roll": _trim(summ["mean_peak_roll_breath"][0], 1)},
     }
-    payload["findings"] = findings.findings_for(payload)
+    payload["findings"] = _safe_findings(payload)
     return payload
 
 
@@ -208,7 +233,7 @@ def process_sacrum(rec: dict, *, pool_length_m: float = 25.0) -> dict:
         if "t_peak" in ev["pushoffs"].columns else [],
         "traces": {"t": [_trim(x, 3) for x in t[::step]], "roll": [_trim(x, 1) for x in roll[::step]]},
     }
-    payload["findings"] = findings.findings_for(payload)
+    payload["findings"] = _safe_findings(payload)
     return payload
 
 
@@ -263,7 +288,7 @@ def process_wrist(rec_l: dict, rec_r: dict) -> dict:
         "symmetry": {k: _trim(v, 3) for k, v in sym.items()},
         "flags": sorted(set(armR["flags"]) | set(armL["flags"])),
     }
-    payload["findings"] = findings.findings_for(payload)
+    payload["findings"] = _safe_findings(payload)
     return payload
 
 

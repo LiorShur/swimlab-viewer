@@ -153,6 +153,17 @@ def test_single_placement_session(session_recordings):
     assert out["default_placement"] == "sacrum"
 
 
+def test_findings_never_crash_on_none_metrics():
+    """None metrics (e.g. a single file with no real calibration) must yield a
+    neutral finding + FINDINGS_INCOMPLETE flag, not a 500."""
+    payload = {"placement": "sacrum", "flags": [],
+               "summary": {"body_roll_amplitude_deg": None, "roll_symmetry_index": None,
+                           "tempo_spm": None, "pace_drift_s_per_length": None}}
+    out = pipeline._safe_findings(payload)
+    assert out["en"]["headline"] and out["he"]["headline"]
+    assert "FINDINGS_INCOMPLETE" in payload["flags"]
+
+
 def test_single_wrist_is_not_dropped(session_recordings):
     """One wrist sensor still yields a (single-arm) wrist payload, not nothing."""
     _body, recs = session_recordings
