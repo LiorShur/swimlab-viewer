@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { STR, type Lang } from "../lib/i18n";
+import { BANNER, KPI_LABEL, KPI_UNIT, STR, type Lang } from "../lib/i18n";
 import { PlaybackControls } from "./PlaybackControls";
 import { TraceChart, type Series } from "./TraceChart";
+import { Findings } from "./Findings";
 
 const PALETTE = ["#4aa8ff", "#ff8a5b", "#3fb950", "#d29922"];
 
@@ -30,17 +31,21 @@ function extractTraces(session: any): { t: number[]; series: Series[] } {
   return { t, series };
 }
 
-function Kpis(props: { summary: Record<string, any> }) {
+function Kpis(props: { lang: Lang; summary: Record<string, any> }) {
   const entries = Object.entries(props.summary || {}).filter(
     ([, v]) => typeof v === "number" && Number.isFinite(v),
   );
   if (!entries.length) return null;
+  const label = (k: string) => KPI_LABEL[props.lang][k] ?? k.replace(/_/g, " ");
   return (
     <div className="kpis">
       {entries.slice(0, 8).map(([k, v]) => (
         <div className="kpi" key={k}>
-          <div className="k-lab">{k.replace(/_/g, " ")}</div>
-          <div className="k-val">{Number(v).toFixed(2)}</div>
+          <div className="k-lab">{label(k)}</div>
+          <div className="k-val">
+            {Number.isInteger(v) ? v : Number(v).toFixed(2)}
+            {KPI_UNIT[k] && <span className="u"> {KPI_UNIT[k]}</span>}
+          </div>
         </div>
       ))}
     </div>
@@ -84,13 +89,16 @@ export function Dashboard(props: {
   }, [playing, speed, times.length]);
 
   const nar = props.session?._nar?.[props.lang];
+  const banner = BANNER[props.lang][props.placement];
+  const findings = props.session?.findings?.[props.lang];
 
   return (
     <div className="dash">
+      {banner && <div className="banner">{banner}</div>}
       {props.session?.detected_pattern && (
         <div className="pattern">{props.session.detected_pattern}</div>
       )}
-      <Kpis summary={props.session?.summary || {}} />
+      <Kpis lang={props.lang} summary={props.session?.summary || {}} />
 
       {times.length > 1 && series.length > 0 && (
         <div className="panel">
@@ -113,6 +121,10 @@ export function Dashboard(props: {
         </div>
       )}
 
+      {/* Default, rule-based analysis (no AI call) — always shown. */}
+      <Findings lang={props.lang} findings={findings} />
+
+      {/* AI narration layers richer prose on top, on demand (paid). */}
       <div className="narrate">
         <button
           className="btn primary"
@@ -123,8 +135,16 @@ export function Dashboard(props: {
         </button>
         {nar && (
           <div className="narbox">
+            <div className="ailabel">{t("aiSummary")}</div>
             {nar.headline && <div className="nhead">{nar.headline}</div>}
             {nar.summary && <p className="nsum">{nar.summary}</p>}
+            {Array.isArray(nar.coaching) && nar.coaching.length > 0 && (
+              <ul className="coach">
+                {nar.coaching.map((c: any, i: number) => (
+                  <li key={i}><span className="pt">{typeof c === "string" ? c : c.point}</span></li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

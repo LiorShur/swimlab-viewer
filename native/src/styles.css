@@ -44,10 +44,26 @@ canvas.trace { display: block; }
 .playback select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
 .playback .scrub { flex: 1; min-width: 140px; }
 
+.kpi .k-val .u { font-size: 13px; color: var(--muted); font-weight: 500; }
+.banner { margin: 10px 0; padding: 10px 13px; border-radius: 8px; font-size: 13px;
+  background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
+
+.findings { margin: 14px 0; }
+.findings .fhead { font-size: 17px; font-weight: 680; margin: 4px 0 2px; }
+.findings .fsum { margin: 0 0 8px; color: var(--text); max-width: 70ch; }
+.findings .clabel { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 6px; }
+ul.coach { list-style: none; padding: 0; margin: 6px 0 0; }
+ul.coach li { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 5px; }
+ul.coach li:last-child { border-bottom: none; }
+ul.coach .pt { font-size: 14px; }
+ul.coach .mchip { align-self: flex-start; font-family: var(--mono); font-size: 11px; color: var(--muted);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; direction: ltr; }
+
 .narrate { margin: 14px 0; }
 .narbox { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.narbox .ailabel { font-size: 10.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
 .narbox .nhead { font-weight: 660; margin-bottom: 4px; }
-.narbox .nsum { margin: 0; color: var(--muted); }
+.narbox .nsum { margin: 0 0 6px; color: var(--muted); }
 
 ul.hist { list-style: none; padding: 0; margin: 10px 0; }
 ul.hist li { display: flex; align-items: center; justify-content: space-between; gap: 10px;

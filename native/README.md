@@ -22,7 +22,9 @@ native/
     lib/i18n.ts          EN/HE strings (Hebrew default, RTL)
     components/
       AuthGate.tsx       Google + Email/Password sign-in
-      Dashboard.tsx      per-placement KPIs + trace chart + playback + narrate
+      Dashboard.tsx      banner + labelled KPIs + trace chart + playback +
+                         default rule-based findings/coaching + AI narrate
+      Findings.tsx       the bilingual rule-based analysis (no AI call)
       PlaybackControls   play / pause / speed (0.5–4×) / scrub
       TraceChart.tsx     canvas traces with a playhead
       History.tsx        saved swims -> reload a bundle from Storage
