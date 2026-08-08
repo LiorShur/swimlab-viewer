@@ -56,6 +56,32 @@ Sign in, then **Import recordings** — feed the synthetic Custom-Mode-5 CSVs fr
 through `process_session`, renders the placement dashboards with playback, saves
 to your account, and **Narrate** calls the server. Everything mirrors the web app.
 
+## Deploy as the hosted web app (this IS the hosted site)
+
+Firebase Hosting serves this app's build — `../firebase.json` points `hosting.public`
+at `native/dist` with an SPA rewrite. So the hosted link and the app are the same
+thing; share the link with anyone (works in mobile Safari/Chrome). The old web app
+is archived read-only in `../legacy`.
+
+```bash
+cd native
+# .env must hold your REAL Firebase web config — it's baked into the build
+npm install
+npm run build            # -> native/dist
+cd ..
+firebase deploy --only hosting
+# open https://<your-project>.web.app  (e.g. https://swimlab-d6a3f.web.app)
+```
+
+Notes:
+- The Firebase config is **build-time** (`VITE_FIREBASE_*` in `.env`), so rebuild
+  after changing it. The hosting domain (`*.web.app` / `*.firebaseapp.com`) is an
+  authorized auth domain by default, so sign-in works there.
+- **Mobile sign-in** uses a full-page redirect (popups are unreliable on iOS
+  Safari); email/password always works.
+- Needs the functions deployed with public invoker (`process_session`, `narrate`,
+  `detect_placement`, `get_swim`) — see `../functions/README.md`.
+
 ## Wrap as a native app
 
 ```bash

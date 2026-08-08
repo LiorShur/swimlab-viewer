@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { getRedirectResult, onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "./lib/firebase";
 import { STR, dirFor, type Lang } from "./lib/i18n";
 import { AuthGate } from "./components/AuthGate";
@@ -30,6 +30,7 @@ export default function App() {
   const t = (k: string) => STR[lang][k] ?? k;
 
   useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u); setReady(true); }), []);
+  useEffect(() => { getRedirectResult(auth).catch(() => {}); }, []);  // complete a mobile redirect sign-in
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = dirFor(lang);

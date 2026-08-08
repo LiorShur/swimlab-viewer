@@ -1,10 +1,14 @@
 import { useState } from "react";
 import {
   GoogleAuthProvider, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, signInWithPopup,
+  signInWithEmailAndPassword, signInWithPopup, signInWithRedirect,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { STR, type Lang } from "../lib/i18n";
+
+// On mobile (esp. iOS Safari), popups are blocked/flaky — use a full-page
+// redirect there and popups on desktop.
+const PREFER_REDIRECT = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 // Sign-in screen (Google + Email/Password). Shown until a user is present.
 export function AuthGate(props: { lang: Lang }) {
@@ -16,8 +20,11 @@ export function AuthGate(props: { lang: Lang }) {
 
   const google = async () => {
     setErr(null);
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch (e: any) { setErr(e?.message || String(e)); }
+    const provider = new GoogleAuthProvider();
+    try {
+      if (PREFER_REDIRECT) await signInWithRedirect(auth, provider);
+      else await signInWithPopup(auth, provider);
+    } catch (e: any) { setErr(e?.message || String(e)); }
   };
   const submit = async () => {
     setErr(null);
