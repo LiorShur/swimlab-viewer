@@ -23,6 +23,7 @@ functions/
 |---|---|---|---|
 | `process_session` | free | `{recordings: [{placement_id, trial, t0a, t0b, ...}], pool_length_m?, swim_id?}` | `{placements: {head,sacrum,wrist}, default_placement, saved?}` |
 | `detect_placement` | free | `{csv}` (inline or `gs://`) | `{placement: 'head'\|'sacrum'\|'wrist', confidence, scores, features}` |
+| `get_swim` | user | `{swim_id}` | the saved dashboard bundle (read from Storage server-side — no browser CORS) |
 | `narrate` | paid* | `{payload, placement?}` | `{narratives: {en, he}, model, placement, tier}` |
 | `set_tier` | admin | `{uid, tier: 'free'\|'paid'}` | `{uid, tier}` |
 

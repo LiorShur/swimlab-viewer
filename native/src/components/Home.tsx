@@ -1,7 +1,16 @@
 import { useMemo } from "react";
 import { PLACEMENT_LABEL, STR, type Lang } from "../lib/i18n";
 import { Dashboard } from "./Dashboard";
+import { SessionHeader } from "./SessionHeader";
 import type { Bundle } from "../lib/backend";
+
+// Show the body sensors first (head/sacrum), then limbs.
+const PLACEMENT_ORDER = ["head", "sacrum", "wrist", "ankle_l", "ankle_r", "uparm_l", "uparm_r"];
+const orderPlacements = (keys: string[]) =>
+  [...keys].sort((a, b) => {
+    const ia = PLACEMENT_ORDER.indexOf(a), ib = PLACEMENT_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
 
 // Home: the active swim's dashboards (placement tabs + Dashboard), or a welcome
 // prompt when nothing is loaded.
@@ -14,7 +23,9 @@ export function Home(props: {
   goCapture: () => void;
 }) {
   const t = (k: string) => STR[props.lang][k] ?? k;
-  const placements = useMemo(() => (props.bundle ? Object.keys(props.bundle.placements) : []), [props.bundle]);
+  const placements = useMemo(
+    () => (props.bundle ? orderPlacements(Object.keys(props.bundle.placements)) : []),
+    [props.bundle]);
   const session = useMemo(() => {
     if (!props.bundle || !props.active) return null;
     const pl = props.bundle.placements[props.active];
@@ -35,6 +46,7 @@ export function Home(props: {
   const ICON: Record<string, string> = { head: "🏊", sacrum: "🎯", wrist: "⌚" };
   return (
     <div className="screen">
+      <SessionHeader lang={props.lang} bundle={props.bundle} />
       {/* placement header/tabs — always shown so the swim is labelled, even
           with a single sensor (a single tab acts as the header). */}
       {placements.length > 0 && (

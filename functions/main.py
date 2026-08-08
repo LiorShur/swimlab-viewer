@@ -231,6 +231,32 @@ def detect_placement(req: https_fn.CallableRequest):
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, f"detection failed: {e}")
 
 
+@https_fn.on_call(memory=options.MemoryOption.MB_512, timeout_sec=60, cors=_CORS)
+def get_swim(req: https_fn.CallableRequest):
+    """Return a saved swim's full dashboard bundle. Reads the bundle from Storage
+    with the Admin SDK (server-side — no browser CORS), so History can reopen a
+    swim reliably. Request data: ``{swim_id}``. Requires the owning user.
+    """
+    uid = _uid(req)
+    if not uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "sign in required")
+    swim_id = (req.data or {}).get("swim_id")
+    if not swim_id:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "swim_id required")
+    snap = firestore.client().document(f"users/{uid}/swims/{swim_id}").get()
+    if not snap.exists:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.NOT_FOUND, "swim not found")
+    path = (snap.to_dict() or {}).get("bundlePath")
+    if not path:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.NOT_FOUND, "swim bundle missing")
+    try:
+        import json
+        text = _resolve_recordings([{"trial": path}])[0]["trial"]  # downloads gs://
+        return json.loads(text)
+    except Exception as e:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, f"load failed: {e}")
+
+
 @https_fn.on_call(secrets=[ANTHROPIC_API_KEY], memory=options.MemoryOption.MB_512,
                   timeout_sec=120, cors=_CORS)
 def narrate(req: https_fn.CallableRequest):

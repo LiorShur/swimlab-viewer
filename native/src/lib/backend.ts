@@ -82,6 +82,14 @@ export async function loadBundle(bundlePath: string): Promise<Bundle> {
   return JSON.parse(new TextDecoder().decode(bytes)) as Bundle;
 }
 
+// Reopen a saved swim via the backend (Admin SDK reads Storage server-side, so
+// there's no browser-CORS problem the direct download had).
+const _getSwim = httpsCallable(functions, "get_swim", { timeout: 60000 });
+export async function getSwim(swimId: string): Promise<Bundle> {
+  const { data } = await _getSwim({ swim_id: swimId });
+  return data as Bundle;
+}
+
 export function isUpgradeRequired(err: any): boolean {
   const code = (err && (err.code || "")) as string;
   return code.includes("permission-denied") || err?.details?.reason === "upgrade_required";

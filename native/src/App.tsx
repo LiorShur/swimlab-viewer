@@ -37,8 +37,11 @@ export default function App() {
   }, [lang]);
 
   function openBundle(b: Bundle) {
+    if (!(b as any)._meta) (b as any)._meta = { date: new Date().toISOString() };  // fresh swim = now
+    const order = ["head", "sacrum", "wrist", "ankle_l", "ankle_r", "uparm_l", "uparm_r"];
+    const present = Object.keys(b.placements);
     setBundle(b);
-    setActive(b.default_placement && b.placements[b.default_placement] ? b.default_placement : Object.keys(b.placements)[0] || "");
+    setActive(order.find((p) => present.includes(p)) || present[0] || "");
     setTab("home");
   }
 

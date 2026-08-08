@@ -193,6 +193,25 @@ ul.drills .dacts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
 .narbox .nhead { font-weight: 660; margin-bottom: 4px; }
 .narbox .nsum { margin: 0 0 6px; color: var(--muted); }
 
+/* history accumulated stats */
+.hist-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 10px; margin: 6px 0 16px; }
+.hstat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; text-align: center; }
+.hstat-v { font-family: var(--mono); font-size: 21px; font-weight: 600; }
+.hstat-v.sm { font-size: 13px; }
+.hstat-v .u { font-size: 12px; color: var(--muted); font-weight: 500; }
+.hstat-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+
+/* session heading */
+.session-head { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.sh-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sh-date { font-weight: 660; font-size: 15px; }
+.sh-swimmer { color: var(--muted); font-size: 13px; }
+.sh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+.sh-tile { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 8px; text-align: center; }
+.sh-v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 600; direction: ltr; }
+.sh-v .u { font-size: 11px; color: var(--muted); font-weight: 500; }
+.sh-l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 3px; }
+
 ul.hist { list-style: none; padding: 0; margin: 10px 0; }
 ul.hist li { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
