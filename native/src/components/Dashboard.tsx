@@ -59,8 +59,14 @@ export function Dashboard(props: {
   placement: string;
   session: any;
   onNarrate: (session: any) => Promise<void>;
+  onGoCapture?: () => void;
 }) {
   const t = (k: string) => STR[props.lang][k] ?? k;
+  // Nudge toward the advanced (separate-calibration) path when a single-file
+  // import couldn't be analysed — the usual cause is no calibration in the file.
+  const flags: string[] = props.session?.flags || [];
+  const incomplete = flags.includes("FINDINGS_INCOMPLETE") ||
+    (flags.includes("CALIB_FROM_TRIAL_PROVISIONAL") && flags.includes("INSUFFICIENT_CYCLES"));
   const { t: times, series } = useMemo(() => extractTraces(props.session), [props.session]);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -96,6 +102,15 @@ export function Dashboard(props: {
 
   return (
     <div className="dash">
+      {incomplete && (
+        <div className="dash-warn">
+          <div className="dw-title">⚠ {t("incompleteTitle")}</div>
+          <div className="dw-body">{t("incompleteBody")}</div>
+          {props.onGoCapture && (
+            <button className="btn" onClick={props.onGoCapture}>⬆ {t("incompleteCta")}</button>
+          )}
+        </div>
+      )}
       {banner && <div className="banner">{banner}</div>}
       {props.session?.detected_pattern && (
         <div className="pattern">{props.session.detected_pattern}</div>

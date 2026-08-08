@@ -146,6 +146,10 @@ canvas.trace { display: block; }
 .kpi .k-val .u { font-size: 13px; color: var(--muted); font-weight: 500; }
 .banner { margin: 10px 0; padding: 10px 13px; border-radius: 8px; font-size: 13px;
   background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
+.dash-warn { margin: 12px 0; padding: 13px 14px; border-radius: 10px;
+  background: var(--panel2); border: 1px solid var(--warn, #d29922); }
+.dash-warn .dw-title { font-weight: 660; color: var(--warn, #d29922); margin-bottom: 4px; }
+.dash-warn .dw-body { font-size: 13px; color: var(--text); margin-bottom: 10px; }
 
 .findings { margin: 14px 0; }
 .findings .fhead { font-size: 17px; font-weight: 680; margin: 4px 0 2px; }

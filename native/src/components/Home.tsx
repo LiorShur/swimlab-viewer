@@ -47,7 +47,8 @@ export function Home(props: {
           ))}
         </div>
       )}
-      <Dashboard lang={props.lang} placement={props.active} session={session} onNarrate={props.onNarrate} />
+      <Dashboard lang={props.lang} placement={props.active} session={session}
+                 onNarrate={props.onNarrate} onGoCapture={props.goCapture} />
     </div>
   );
 }
