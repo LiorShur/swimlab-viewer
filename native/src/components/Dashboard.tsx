@@ -5,6 +5,7 @@ import { TraceChart, type Series } from "./TraceChart";
 import { Findings } from "./Findings";
 import { Drills } from "./Drills";
 import { MotionSchematic } from "./MotionSchematic";
+import { PlacementDetails } from "./PlacementDetails";
 
 const PALETTE = ["#4aa8ff", "#ff8a5b", "#3fb950", "#d29922"];
 
@@ -142,6 +143,9 @@ export function Dashboard(props: {
       {times.length > 1 && (
         <MotionSchematic lang={props.lang} placement={props.placement} session={props.session} index={Math.round(index)} />
       )}
+
+      {/* Expandable detail: per-length / per-breath / per-arm tables + symmetry. */}
+      <PlacementDetails lang={props.lang} placement={props.placement} session={props.session} />
 
       {/* Default, rule-based analysis (no AI call) — always shown. */}
       <Findings lang={props.lang} findings={findings} />

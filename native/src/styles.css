@@ -189,6 +189,41 @@ ul.drills .dacts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
 .vopen { display: block; padding: 10px 14px; font-size: 12.5px; color: var(--accent); text-decoration: none; }
 .vopen:hover { text-decoration: underline; }
 
+/* expandable detail sections */
+details.detail { margin: 8px 0 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+details.detail > summary { cursor: pointer; padding: 13px 15px; font-weight: 600; font-size: 14px; list-style: none; }
+details.detail > summary::-webkit-details-marker { display: none; }
+details.detail > summary::before { content: "▸ "; color: var(--muted); }
+details.detail[open] > summary::before { content: "▾ "; }
+.detail-body { padding: 0 15px 15px; }
+.tscroll { overflow-x: auto; max-height: 300px; overflow-y: auto; }
+.tscroll table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.tscroll thead th { position: sticky; top: 0; background: var(--panel); text-align: end; padding: 7px 10px;
+  color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid var(--line); }
+.tscroll thead th:first-child, .tscroll tbody td:first-child { text-align: start; }
+.tscroll tbody td { padding: 7px 10px; text-align: end; border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tscroll tbody tr:last-child td { border-bottom: none; }
+
+.symrow { margin: 6px 0; }
+.sym-label { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.symbar { display: flex; align-items: center; gap: 10px; direction: ltr; }
+.symbar .sb-cap { font-size: 12px; color: var(--muted); font-family: var(--mono); min-width: 42px; }
+.symbar .sb-cap:last-child { text-align: right; }
+.sb-track { flex: 1; height: 22px; border-radius: 6px; overflow: hidden; display: flex; background: var(--panel2); border: 1px solid var(--line); }
+.sb-track .sb-l { background: var(--left); opacity: .85; }
+.sb-track .sb-r { background: var(--right); opacity: .85; }
+.phase { margin-top: 12px; }
+.phase-track { position: relative; height: 8px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); margin: 6px 0 3px; direction: ltr; }
+.phase-ideal { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--good); }
+.phase-mark { position: absolute; top: -3px; bottom: -3px; width: 3px; background: var(--accent); transform: translateX(-50%); }
+.gate-track { position: relative; height: 22px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); overflow: hidden; direction: ltr; }
+.gate-fill { height: 100%; background: var(--accent); opacity: .7; }
+.gate-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warn); }
+.gate-legend { display: flex; gap: 14px; font-size: 12.5px; margin-top: 7px; }
+.gate-legend .muted { color: var(--muted); }
+.sm { font-size: 11.5px; }
+
 .narrate { margin: 14px 0; }
 .narbox { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
 .narbox .ailabel { font-size: 10.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
