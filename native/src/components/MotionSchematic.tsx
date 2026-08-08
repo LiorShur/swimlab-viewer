@@ -73,42 +73,63 @@ function drawBody(ctx: CanvasRenderingContext2D, W: number, H: number, roll: num
   label(ctx, W, H, "body roll " + (roll >= 0 ? "+" : "") + roll.toFixed(0) + "° vs water  ·  R blue / L orange");
 }
 
-// Side view (swimmer prone at the surface, head to the left). Each arm sweeps
-// from recovery (above water, forward) through catch to pull (below water,
-// back). fracR/fracL in [0,1] map recovery->pull along the recorded pitch range.
-function drawArms(ctx: CanvasRenderingContext2D, W: number, H: number, fracR: number, fracL: number) {
+// Side view, swimming LEFT: the head is ahead (left), hips/feet behind (right).
+// Each forearm circulates as a windmill driven by the recorded pitch phase:
+// enters in front by the head, presses DOWN and BACK toward the feet underwater
+// (the pull), then sweeps UP and OVER forward toward the head (the recovery).
+// The two arms are ~half a cycle apart, so one pulls while the other recovers.
+function drawArms(ctx: CanvasRenderingContext2D, W: number, H: number, wR: number, wL: number) {
   const right = cssv("--right") || cssv("--accent"), left = cssv("--left"), muted = cssv("--muted");
-  const waterY = H * 0.4;
-  waterLine(ctx, W, H, waterY);
+  const cy = H * 0.5, shX = W * 0.5, shY = cy, A = 42, B = 46;
+  waterLine(ctx, W, H, cy);
 
-  const shX = W * 0.52, shY = waterY + 5, L = 52;
-  // torso + head at the surface, moving left
+  // body: head ahead (left), torso + hips trailing (right)
   ctx.strokeStyle = muted; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.ellipse(shX + 26, shY + 5, 30, 9, 0, 0, 2 * Math.PI); ctx.stroke();
-  ctx.beginPath(); ctx.arc(shX - 30, shY + 3, 8, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(shX + 40, shY, 34, 9, 0, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(shX - 30, shY, 8, 0, 2 * Math.PI); ctx.stroke();
+  // forward arrow (swim direction)
+  ctx.strokeStyle = muted; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(shX - 52, shY - 34); ctx.lineTo(shX - 68, shY - 34);
+  ctx.moveTo(shX - 62, shY - 38); ctx.lineTo(shX - 68, shY - 34); ctx.lineTo(shX - 62, shY - 30); ctx.stroke();
 
-  const REC = -0.6, PULL = 2.7;  // radians: recovery (up-forward) -> pull (down-back)
-  const arm = (frac: number, color: string, dx: number) => {
-    const th = REC + (PULL - REC) * Math.max(0, Math.min(1, frac));
-    const hx = shX + dx + Math.sin(th) * L;
-    const hy = shY - Math.cos(th) * L;
-    const under = hy > waterY;
+  // faint stroke path (the windmill loop)
+  ctx.strokeStyle = "rgba(139,151,167,.22)"; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.ellipse(shX, shY, A, B, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+
+  const arm = (w: number, color: string) => {
+    // Circulate so the pull sweeps front->back underwater and recovery back->front
+    // over the water (the sin sign sets the rotation direction).
+    const hx = shX - A * Math.cos(w);
+    const hy = shY - B * Math.sin(w);
+    const under = hy > cy;
     ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = "round";
     ctx.setLineDash(under ? [] : [4, 4]);
-    ctx.beginPath(); ctx.moveTo(shX + dx, shY); ctx.lineTo(hx, hy); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.lineWidth = 2; ctx.strokeStyle = color;
+    ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(hx, hy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI);
     if (under) { ctx.fillStyle = color; ctx.fill(); } else ctx.stroke();
   };
-  arm(fracR, right, 3); arm(fracL, left, -3);
+  arm(wR, right); arm(wL, left);
 
-  label(ctx, W, H, "R blue / L orange  ·  solid = underwater pull, dashed = recovery");
+  label(ctx, W, H, "← swim  ·  R blue / L orange  ·  under = pull (back), over = recovery (forward)");
 }
 
-function extent(a: number[]): [number, number] {
-  const f = a.filter((x) => Number.isFinite(x));
-  return f.length ? [Math.min(...f), Math.max(...f)] : [0, 1];
+// Continuous stroke phase from a forearm-pitch trace: treat (centred pitch, its
+// time-derivative) as a rotating vector; its angle advances ~once per stroke.
+// Sign chosen so the windmill sweeps back underwater / forward over the water.
+function strokePhase(p: number[]): number[] {
+  const n = p.length;
+  if (n < 3) return new Array(n).fill(0);
+  const mean = p.reduce((a, b) => a + b, 0) / n;
+  const pc = p.map((x) => x - mean);
+  const v = pc.map((_, i) =>
+    i === 0 ? pc[1] - pc[0] : i === n - 1 ? pc[n - 1] - pc[n - 2] : (pc[i + 1] - pc[i - 1]) / 2);
+  const sd = (a: number[]) => {
+    const m = a.reduce((x, y) => x + y, 0) / a.length;
+    return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length) || 1;
+  };
+  const sp = sd(pc), sv = sd(v);
+  return pc.map((x, i) => Math.atan2(v[i] / sv, x / sp));
 }
 
 export function MotionSchematic(props: { lang: Lang; placement: string; session: any; index: number }) {
@@ -119,7 +140,7 @@ export function MotionSchematic(props: { lang: Lang; placement: string; session:
     if (props.placement === "wrist") {
       const r = props.session?.arms?.R?.traces?.pitch || [];
       const l = props.session?.arms?.L?.traces?.pitch || [];
-      return { kind: "wrist", r, l, rEx: extent(r), lEx: extent(l) } as const;
+      return { kind: "wrist", r, l, rPh: strokePhase(r), lPh: strokePhase(l) } as const;
     }
     return { kind: "body", roll: tr.roll || [] };
   }, [props.session, props.placement]);
@@ -142,10 +163,8 @@ export function MotionSchematic(props: { lang: Lang; placement: string; session:
     } else if (arrays.kind === "body") {
       drawBody(ctx, W, H, (arrays.roll as number[])[i] || 0);
     } else {
-      const norm = (v: number, ex: readonly [number, number]) => (ex[1] > ex[0] ? (v - ex[0]) / (ex[1] - ex[0]) : 0.5);
-      const rEx = ((arrays as any).rEx ?? [0, 1]) as [number, number];
-      const lEx = ((arrays as any).lEx ?? [0, 1]) as [number, number];
-      drawArms(ctx, W, H, norm((arrays.r as number[])[i] || 0, rEx), norm((arrays.l as number[])[i] || 0, lEx));
+      const rPh = (arrays as any).rPh as number[], lPh = (arrays as any).lPh as number[];
+      drawArms(ctx, W, H, rPh?.[i] ?? 0, lPh?.[i] ?? 0);
     }
   }, [props.index, arrays, len]);
 
