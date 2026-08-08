@@ -191,14 +191,14 @@ export const MOTION_TITLE: Record<Lang, string> = { en: "Motion", he: "תנוע�
 // Per-placement caption for the motion schematic (mirrors the web app).
 export const MOTION_HINT: Record<Lang, Record<string, string>> = {
   en: {
-    head: "A simple schematic driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
-    sacrum: "A rear view of the torso rolling side to side, driven by the recorded body-roll trace.",
-    wrist: "The two forearms swinging through catch → pull → recovery, driven by each arm's pitch — antiphase, as recorded.",
+    head: "Two dials driven by the recorded traces: the head rolls (rotation) and pitches (lift) as it did in the swim.",
+    sacrum: "Head-on view: the torso rolls about its long axis. The shoulder line's tilt against the flat water line is your body roll relative to the surface.",
+    wrist: "Side view (swimming left): each forearm sweeps recovery → catch → pull. Solid below the water line is the underwater pull, dashed above is the recovery; the arms alternate.",
   },
   he: {
-    head: "סכמה פשוטה המונעת מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
-    sacrum: "מבט מאחור על הגו המתגלגל מצד לצד, מונע מאות סיבוב-הגוף שנמדד.",
-    wrist: "שתי האמות נעות דרך תפיסה → משיכה → התאוששות, מונע מזווית כל יד — באנטי-פאזה, כפי שנמדד.",
+    head: "שני חוגות המונעות מהמדידות: הראש מתגלגל (סיבוב) ומתרומם (פיץ׳) כפי שהיה בשחייה.",
+    sacrum: "מבט חזיתי: הגו מתגלגל סביב הציר האורכי. הטיית קו הכתפיים ביחס לקו המים הישר היא גלגול הגוף ביחס לפני המים.",
+    wrist: "מבט צד (שחייה שמאלה): כל אמה נעה התאוששות → תפיסה → משיכה. קו מלא מתחת לקו המים הוא המשיכה מתחת למים, מקווקו מעליו הוא ההתאוששות; הידיים מתחלפות.",
   },
 };
 
